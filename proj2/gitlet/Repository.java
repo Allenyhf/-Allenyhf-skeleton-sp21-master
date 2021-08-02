@@ -1,6 +1,6 @@
 package gitlet;
 
-import com.sun.source.tree.Tree;
+// import com.sun.source.tree.Tree;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +12,7 @@ import static gitlet.Utils.*;
 
 
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
+ *  It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author Hongfa You
@@ -167,7 +167,7 @@ public class Repository {
      *  the commits does not matter. Hint: there is a useful method in gitlet.Utils that
      *  will help you iterate over files within a directory.
      */
-    public static void global_log() {
+    public static void globalLog() {
         List<String> fileList = Utils.plainFilenamesIn(INFOCOMMIT_DIR);
         Commit commit;
 
@@ -219,9 +219,11 @@ public class Repository {
      */
     public static void checkout(String filename, Boolean bool) {
         // checkout -- [file name]
-        String SHA1 = HEAD.whichCommit();
-        overwriteOne(SHA1, filename);
-        // unstageOne(filename); Only version 3 (checkout of a full branch) modifies the staging area: otherwise files scheduled for addition or removal remain so.
+        String commitId = HEAD.whichCommit();
+        overwriteOne(commitId, filename);
+        // unstageOne(filename);
+        // Only version 3 (checkout of a full branch) modifies the staging area:
+        // otherwise files scheduled for addition or removal remain so.
     }
 
 
@@ -255,7 +257,9 @@ public class Repository {
     public static void checkout(String commitName, String fileName) {
         // checkout [commit id] -- [file name]
         overwriteOne(commitName, fileName);
-        // unstageOne(fileName); Only version 3 (checkout of a full branch) modifies the staging area: otherwise files scheduled for addition or removal remain so.
+        // unstageOne(fileName);
+        // Only version 3 (checkout of a full branch) modifies the staging area:
+        // otherwise files scheduled for addition or removal remain so.
     }
 
     /**
@@ -275,11 +279,11 @@ public class Repository {
     }
 
     /**
-     *  Deletes the branch with the given name. This only means to delete the pointer associated with
-     *  the branch; it does not mean to delete all commits that were created under the branch, or
-     *  anything like that.
+     *  Deletes the branch with the given name. This only means to delete the pointer associated
+     *  with the branch; it does not mean to delete all commits that were created under the branch,
+     *  or anything like that.
      */
-    public static void rm_branch(String branchName) {
+    public static void rmBranch(String branchName) {
         Branch.deleteBranch(branchName);
     }
 
@@ -326,7 +330,7 @@ public class Repository {
      *
      * @param commit
      */
-    private static void moveFromStaged2Commited(Commit commit){
+    private static void moveFromStaged2Commited(Commit commit) {
         List<String> listOfStaged= plainFilenamesIn(STAGE_DIR);
 
         Blob.blobMap = Blob.getTreeMap(Blob.blobMap, false);
@@ -459,7 +463,7 @@ public class Repository {
             abort("");
         }
         String value;
-        for(Map.Entry<String,String> entry : blobMap.entrySet()) {
+        for (Map.Entry<String,String> entry : blobMap.entrySet()) {
             value = entry.getValue();
             nameSet.add(value);
             System.out.println(value);
@@ -473,7 +477,7 @@ public class Repository {
         System.out.println("=== Removed Files ===");
         TreeMap<String, String> removal = Blob.getTreeMap(Blob.removal, true);
         String key;
-        for(Map.Entry<String,String> entry : removal.entrySet()) {
+        for (Map.Entry<String,String> entry : removal.entrySet()) {
             key = entry.getKey();
 //            nameSet.add(key);
             System.out.println(key);
@@ -567,7 +571,7 @@ public class Repository {
      */
     private static void testCommit() {
         Commit tmp = Commit.readCommitFromFile(HEAD.whichCommit());
-        for(Map.Entry<String,String> entry : tmp.fileMap.entrySet()) {
+        for (Map.Entry<String,String> entry : tmp.fileMap.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
             System.out.println(key + " => " + value);
@@ -580,7 +584,7 @@ public class Repository {
      */
     public static void testBlob() {
         Blob.blobMap = Blob.getTreeMap(Blob.blobMap, false);
-        for(Map.Entry<String,String> entry : Blob.blobMap.entrySet()) {
+        for (Map.Entry<String,String> entry : Blob.blobMap.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
             System.out.println(key + " => " + value);

@@ -5,9 +5,9 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.Date;
+// import java.util.Date;
 import java.util.TreeMap;
-import java.util.Set;
+// import java.util.Set;
 
 import static gitlet.Utils.*;
 
@@ -31,16 +31,16 @@ public class Blob implements Serializable {
      */
     public static void add(String name) {
 
-        String SHA1 = Utils.sha1(name);
+        String sha1Id = Utils.sha1(name);
         File file = Utils.join(Repository.CWD, name);
-        File outfile = Utils.join(Repository.STAGE_DIR, SHA1);
+        File outfile = Utils.join(Repository.STAGE_DIR, sha1Id);
 //        writeObject(outfile, file);
         try {
             Files.copy(file.toPath(), outfile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException excp) {
             System.out.println(excp.getMessage());
         }
-        loadBlobMap(SHA1, name);
+        loadBlobMap(sha1Id, name);
         saveBlobMap();
     }
 
@@ -48,8 +48,8 @@ public class Blob implements Serializable {
      *
      */
     public static void remove(String name) {
-        String SHA1 = Utils.sha1(name);
-        loadremoval(name, SHA1);
+        String sha1Id = Utils.sha1(name);
+        loadremoval(name, sha1Id);
         saveremoval();
     }
 
@@ -88,7 +88,7 @@ public class Blob implements Serializable {
      *  Get blobMap from file system.
      * @return
      */
-    public static TreeMap getTreeMap(TreeMap<String, String> map, boolean isRemoval){
+    public static TreeMap getTreeMap(TreeMap<String, String> map, boolean isRemoval) {
         File blobmapfile;
         if (isRemoval) {
             blobmapfile = Utils.join(Repository.INFOSTAGE_DIR, "removal");

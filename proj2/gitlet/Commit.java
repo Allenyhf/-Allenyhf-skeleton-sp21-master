@@ -8,7 +8,7 @@ import static gitlet.Utils.*;
 import java.time.*;
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
+ *  It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author Hongfa You
@@ -30,8 +30,8 @@ public class Commit implements Serializable {
     /** Parent of this Commit, using SHA1 to indicate **/
     private String parent;
 
-    private String SHA1;
-    /** TreeMap for file for raw file name (such as hello.txt) to file name (namely SHA1) in File System */
+    private String sha1Id;
+    /* TreeMap for file from name (such as hello.txt) to id (namely sha1Id) in File System */
     protected TreeMap<String, String> fileMap;
 
 
@@ -42,7 +42,7 @@ public class Commit implements Serializable {
      * @param msg
      * @param p
      */
-    public Commit(String msg, String p) { // TODO: p should change to SHA1
+    public Commit(String msg, String p) {
         message = msg;
         parent = p;
 
@@ -61,17 +61,17 @@ public class Commit implements Serializable {
 //            dateString = formatter.format(startTime);
         }
 //        System.out.println(dateString);
-        SHA1 = Utils.sha1(message + parent + dateString);
+        sha1Id = Utils.sha1(message + parent + dateString);
         dateString = "Thu Nov 9 17:01:33 2017 -0800";
     }
 
     /**
      * Read Commit from file system by SHA1 of the Commit.
-     * @param SHA1 indicates which Commit, it's actual name of the Commit in File System
+     * @param commitId indicates which Commit, it's actual name of the Commit in File System
      * @return the Commit read in
      */
-    public static Commit readCommitFromFile(String SHA1) {
-        File infile = Utils.join(Repository.INFOCOMMIT_DIR, SHA1);
+    public static Commit readCommitFromFile(String commitId) {
+        File infile = Utils.join(Repository.INFOCOMMIT_DIR, commitId);
         if (!infile.exists()) {
             System.out.println("No commit with that id exists.");
             System.exit(0);
@@ -84,7 +84,7 @@ public class Commit implements Serializable {
      * Save this Commit to a file in File System for future use.
      */
     public void saveCommit() {
-        File outfile = Utils.join(Repository.INFOCOMMIT_DIR, SHA1);
+        File outfile = Utils.join(Repository.INFOCOMMIT_DIR, sha1Id);
         try {
             outfile.createNewFile();
         } catch (IOException excp) {
@@ -109,7 +109,7 @@ public class Commit implements Serializable {
 
     /** Return SHA1 String of this Commit */
     public String getSHA1() {
-        return SHA1;
+        return sha1Id;
     }
 
     /**
@@ -118,12 +118,12 @@ public class Commit implements Serializable {
      **/
     public File loadfile(String filename) {
         /** This commit doesn't contain file named filename, just return false. */
-        if(fileMap == null || !fileMap.containsKey(filename)){
+        if (fileMap == null || !fileMap.containsKey(filename)) {
             return null;
         }
 
-        String SHA1 = fileMap.get(filename);
-        File dir = Utils.join(Repository.COMMITED_DIR, SHA1);
+        String cId = fileMap.get(filename);
+        File dir = Utils.join(Repository.COMMITED_DIR, cId);
 //        File file = readObject(dir, File.class);
 //        return file;
         return dir;

@@ -6,7 +6,7 @@ import java.io.File;
 import static gitlet.Utils.readObject;
 import static gitlet.Utils.writeObject;
 
-public class HEAD implements Serializable{
+public class HEAD implements Serializable {
 //    private String pointBranch; // a String indicates the Commit HEAD should point to
     protected static String pointBranchName;
 
@@ -15,9 +15,9 @@ public class HEAD implements Serializable{
 //        Branch pointBranch = new Branch("master", SHA1);
 //        pointBranch.saveBranch();
 //    }
-    public static void initialize(String SHA1) {
+    public static void initialize(String commitId) {
         pointBranchName = "master";
-        Branch master = new Branch(pointBranchName, SHA1);
+        Branch master = new Branch(pointBranchName, commitId);
         master.saveBranch();
         saveHEAD();
     }
@@ -26,18 +26,17 @@ public class HEAD implements Serializable{
      *  Make HEAD switch to BranchName.
      * @param BranchName
      */
-    public static void switchHEAD(String BranchName) {
+    public static void switchHEAD(String branchName) {
         readHEAD();
-        pointBranchName = BranchName;
+        pointBranchName = branchName;
         saveHEAD();
     }
 
-
     /** Make HEAD switch to commit SHA1. */
-    public static void switch2commit(String SHA1) {
+    public static void switch2commit(String commitId) {
         readHEAD();
         Branch pointBranch = Branch.readBranchIn(pointBranchName);
-        pointBranch.resetWhichCommit(SHA1);
+        pointBranch.resetWhichCommit(commitId);
         saveHEAD();
     }
 

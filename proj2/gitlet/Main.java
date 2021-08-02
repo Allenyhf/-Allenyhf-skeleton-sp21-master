@@ -54,7 +54,7 @@ public class Main {
                 break;
 
             case "global-log":
-                Repository.global_log();
+                Repository.globalLog();
                 break;
 
             case "find":
@@ -83,7 +83,7 @@ public class Main {
                 break;
 
             case "rm-branch":
-                Repository.rm_branch(args[1]);
+                Repository.rmBranch(args[1]);
                 break;
 
             case "reset":
