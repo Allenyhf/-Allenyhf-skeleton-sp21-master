@@ -126,7 +126,7 @@ public class Repository {
 //        Repository.mkalldir();
         Commit commit = new Commit(msg, HEAD.whichCommit());
         CopySnapshot(commit);
-        Staged2Commited(commit);
+        staged2Commited(commit);
         HEAD.switch2commit(commit.getSHA1());
         commit.saveCommit();
     }
@@ -313,7 +313,9 @@ public class Repository {
          unstageAll();
      }
 
-    public static void merge() {}
+    public static void merge() {
+
+    }
 
 
     /** helper function for add().
@@ -332,7 +334,7 @@ public class Repository {
      *  Move the files in the directory .gitlet/staged_obj/ to the directory .gitlet/commited_obj
      * @param commit
      */
-    private static void Staged2Commited(Commit commit) {
+    private static void staged2Commited(Commit commit) {
 //        commit.fileMap = Blob.getBlobMap();
         moveFromStaged2Commited(commit);
         Blob.deleteBlobMap();
@@ -343,7 +345,7 @@ public class Repository {
      * @param commit
      */
     private static void moveFromStaged2Commited(Commit commit) {
-        List<String> listOfStaged= plainFilenamesIn(STAGE_DIR);
+        List<String> listOfStaged = plainFilenamesIn(STAGE_DIR);
 
         Blob.blobMap = Blob.getTreeMap(Blob.blobMap, false);
         if (Blob.blobMap.isEmpty()) {
@@ -359,17 +361,18 @@ public class Repository {
 
             Calendar calendar = Calendar.getInstance();
             Date date = calendar.getTime();
-            String SHA1 = Utils.sha1(name + date.toString());
+            String shaId = Utils.sha1(name + date.toString());
 
             if (commit.fileMap.containsKey(name)) {
-                commit.fileMap.replace(name, SHA1);
+                commit.fileMap.replace(name, shaId);
             } else {
-                commit.fileMap.put(name, SHA1); //map from file name (hello.c) to SHA1 String
+                commit.fileMap.put(name, shaId); //map from file name (hello.c) to SHA1 String
             }
-            destfile = Utils.join(COMMITED_DIR, SHA1);
+            destfile = Utils.join(COMMITED_DIR, shaId);
 //            tmpfile.renameTo(destfile);
             try {
-                Files.copy(tmpfile.toPath(), destfile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(tmpfile.toPath(), destfile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException excp) {
                 System.out.println(excp.getMessage());
             }
@@ -383,7 +386,7 @@ public class Repository {
      *   If no snapshots, namely fileMap of current Commit is empty,
      *   just create a new TreeMap.
      */
-    private static void CopySnapshot(Commit commit) {
+    private static void copySnapshot(Commit commit) {
         Commit lastestCommit = Commit.readCommitFromFile(HEAD.whichCommit());
         if (lastestCommit.fileMap != null) {
             commit.fileMap = (TreeMap<String, String>) lastestCommit.fileMap.clone();
@@ -401,9 +404,9 @@ public class Repository {
     private static boolean checkCommit2Unstaged(String filename) {
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
         if (commit.fileMap.containsKey(filename)) {
-           File cwdfile = Utils.join(CWD, filename);
-           cwdfile.delete();
-           return true;
+            File cwdfile = Utils.join(CWD, filename);
+            cwdfile.delete();
+            return true;
         }
         return false;
     }
@@ -413,8 +416,8 @@ public class Repository {
      *  Delete the file and update the blobMap.
      */
     private static boolean unstageOne(String filename) {
-        String SHA1 = Utils.sha1(filename);
-        File destfile = join(STAGE_DIR, SHA1);
+        String shaId = Utils.sha1(filename);
+        File destfile = join(STAGE_DIR, shaId);
         if (destfile.exists()) {
             destfile.delete();
             Blob.deteleItem(filename);
@@ -455,9 +458,9 @@ public class Repository {
         List<String> branchList = Utils.plainFilenamesIn(BRANCH_DIR);
         HEAD.readHEAD();
 
-        for (String branchName: branchList ) {
+        for (String branchName: branchList) {
             if (branchName.equals("HEAD")) {
-               continue;
+                continue;
             }
             if (branchName.equals(HEAD.pointBranchName)) {
                 System.out.print('*');
@@ -468,7 +471,7 @@ public class Repository {
     }
 
     /** Helper function for status(). */
-    private static void printStagedFiles(Set<String> nameSet){
+    private static void printStagedFiles(Set<String> nameSet) {
         System.out.println("=== Staged Files ===");
         TreeMap<String, String> blobMap = Blob.getTreeMap(Blob.blobMap, false);
         if (blobMap == null) {
@@ -485,11 +488,11 @@ public class Repository {
     }
 
     /** Helper function for status(). */
-    private static void printRemovedFiles(Set<String> nameSet){
+    private static void printRemovedFiles(Set<String> nameSet) {
         System.out.println("=== Removed Files ===");
         TreeMap<String, String> removal = Blob.getTreeMap(Blob.removal, true);
         String key;
-        for (Map.Entry<String,String> entry : removal.entrySet()) {
+        for (Map.Entry<String, String> entry : removal.entrySet()) {
             key = entry.getKey();
 //            nameSet.add(key);
             System.out.println(key);
@@ -502,9 +505,10 @@ public class Repository {
      *  Tracked in the current commit, changed in the working directory, but not staged.
      *  Staged for addition, but with different contents than in the working directory.
      *  Staged for addition, but deleted in the working directory.
-     *  Not staged for removal, but tracked in the current commit and deleted from the working directory.
+     *  Not staged for removal, but tracked in the current commit and deleted from the
+     *  working directory.
      * */
-    private static void printModifications(Set<String> nameSet){
+    private static void printModifications(Set<String> nameSet) {
         System.out.println("=== Modifications Not Staged For Commit ===");
         List<String> stageList = Utils.plainFilenamesIn(STAGE_DIR);
         System.out.println();
@@ -529,8 +533,8 @@ public class Repository {
         if (!commit.fileMap.containsKey(filename)) {
             abort("File does not exist in that commit.");
         }
-        String SHA1 = commit.fileMap.get(filename);
-        File dir = Utils.join(Repository.COMMITED_DIR, SHA1);
+        String shaId = commit.fileMap.get(filename);
+        File dir = Utils.join(Repository.COMMITED_DIR, shaId);
         File dest = join(CWD, filename);
         Utils.secureCopyFile(dir, dest);
     }
@@ -583,7 +587,7 @@ public class Repository {
      */
     private static void testCommit() {
         Commit tmp = Commit.readCommitFromFile(HEAD.whichCommit());
-        for (Map.Entry<String,String> entry : tmp.fileMap.entrySet()) {
+        for (Map.Entry<String, String> entry : tmp.fileMap.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
             System.out.println(key + " => " + value);
@@ -596,7 +600,7 @@ public class Repository {
      */
     public static void testBlob() {
         Blob.blobMap = Blob.getTreeMap(Blob.blobMap, false);
-        for (Map.Entry<String,String> entry : Blob.blobMap.entrySet()) {
+        for (Map.Entry<String, String> entry : Blob.blobMap.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
             System.out.println(key + " => " + value);
@@ -616,7 +620,7 @@ public class Repository {
         }
     }
 
-    public static void printCommitInfo(){
+    public static void printCommitInfo() {
         traceback();
         HEAD.switchHEAD("fork");
         traceback();
@@ -661,6 +665,9 @@ public class Repository {
                 break;
 
             case "unstage":
+                break;
+
+            default:
                 break;
         }
     }
