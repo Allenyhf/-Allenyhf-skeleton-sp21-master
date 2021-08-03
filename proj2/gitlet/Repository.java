@@ -84,6 +84,12 @@ public class Repository {
             abort(filename + "is a directory.");
         }
 
+        /** If the new-added file is already unstaged, just unremove the file. */
+        if (Blob.isRemovalContains(filename)) {
+            Blob.unremove(filename);
+            return;
+        }
+
         // Load current Commit and files in it.
         Commit lastCommit = Commit.readCommitFromFile(HEAD.whichCommit());
         File commitedFile = lastCommit.loadfile(filename);
@@ -137,11 +143,11 @@ public class Repository {
      */
     public static void rm(String filename) {
         boolean iSinCommit = checkCommit2Unstaged(filename);
-        boolean iSinStage = unstageOne(filename);
+        boolean iSinStage = unstageOne(filename, iSinCommit);
         if (!iSinCommit && !iSinStage) {
             abort("No reason to remove the file.");
         }
-        Blob.remove(filename);
+        Blob.remove(filename, iSinCommit);
     }
 
     /**
@@ -214,7 +220,7 @@ public class Repository {
         printStagedFiles(nameSet);
         printRemovedFiles(nameSet);
         printModifications(nameSet);
-//        printUntrackedFiles(nameSet);
+        printUntrackedFiles(nameSet);
     }
 
     /**
@@ -396,6 +402,9 @@ public class Repository {
      */
     private static boolean checkCommit2Unstaged(String filename) {
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
+        if (commit.fileMap == null) {
+            return false;
+        }
         if (commit.fileMap.containsKey(filename)) {
             File cwdfile = Utils.join(CWD, filename);
             cwdfile.delete();
@@ -408,7 +417,7 @@ public class Repository {
      *  Unstaged the file if it is currently staged for addition.
      *  Delete the file and update the blobMap.
      */
-    private static boolean unstageOne(String filename) {
+    private static boolean unstageOne(String filename, boolean isInCommit) {
         String shaId = Utils.sha1(filename);
         File destfile = join(STAGE_DIR, shaId);
         if (destfile.exists()) {
@@ -510,13 +519,13 @@ public class Repository {
     /** Helper function for status(). */
     private static void printUntrackedFiles(Set<String> nameSet) {
         System.out.println("=== Untracked Files ===");
-        List<String> fileList = Utils.plainFilenamesIn(CWD);
-        for (String filename: fileList) {
-            if (nameSet.contains(filename)) {
-                continue;
-            }
-            System.out.println(filename);
-        }
+//        List<String> fileList = Utils.plainFilenamesIn(CWD);
+//        for (String filename: fileList) {
+//            if (nameSet.contains(filename)) {
+//                continue;
+//            }
+//            System.out.println(filename);
+//        }
         System.out.println();
     }
 
