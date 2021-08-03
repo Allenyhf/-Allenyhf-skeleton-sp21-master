@@ -124,9 +124,9 @@ public class Blob implements Serializable {
      *  It is used for clear staged imformation.
      */
     public static void deleteRemoval() {
-        File removal = Utils.join(Repository.INFOSTAGE_DIR, "removal");
-        if (removal.exists()) {
-            removal.delete();
+        File removalfile = Utils.join(Repository.INFOSTAGE_DIR, "removal");
+        if (removalfile.exists()) {
+            removalfile.delete();
         }
     }
 

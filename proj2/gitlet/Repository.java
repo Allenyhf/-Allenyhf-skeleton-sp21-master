@@ -205,12 +205,16 @@ public class Repository {
         }
         List<String> fileList = Utils.plainFilenamesIn(INFOCOMMIT_DIR);
         Commit commit;
-
+        boolean isFinded = false;
         for (String filename: fileList) {
             commit = Commit.readCommitFromFile(filename);
             if (commit.getMessage().equals(msg)) {
                 System.out.println(commit.getSHA1());
+                isFinded = true;
             }
+        }
+        if (!isFinded) {
+            System.out.println("Found no commit with that message.");
         }
     }
 
@@ -233,8 +237,11 @@ public class Repository {
      * working directory, overwriting the version of the file that’s already there if there
      * is one. The new version of the file is not staged.
      */
-    public static void checkout(String filename, Boolean bool) {
+    public static void checkout(String operand, String filename) {
         // checkout -- [file name]
+        if (!operand.equals("--")) {
+            Repository.abort("Incorrect operands.");
+        }
         String commitId = HEAD.whichCommit();
         overwriteOne(commitId, filename);
         // unstageOne(filename);
@@ -255,10 +262,15 @@ public class Repository {
      */
     public static void checkout(String branchName) {
         // checkout [branch name]
+        HEAD.readHEAD();
         if (branchName.equals(HEAD.pointBranchName)) {
-            return;
+            abort("No need to checkout the current branch.");
         }
-
+        List<String> branchList = Utils.plainFilenamesIn(BRANCH_DIR);
+//        File branchFile = Utils.join(BRANCH_DIR, branchName);
+        if (branchList.contains(branchName)) {
+            abort("No need to checkout the current branch.");
+        }
         HEAD.switchHEAD(branchName);
         HEAD.saveHEAD();
         overwriteAll(HEAD.whichCommit());
@@ -270,8 +282,11 @@ public class Repository {
      * it in the working directory, overwriting the version of the file that’s already there
      * if there is one. The new version of the file is not staged.
      */
-    public static void checkout(String commitName, String fileName) {
+    public static void checkout(String commitName, String operand, String fileName) {
         // checkout [commit id] -- [file name]
+        if (!operand.equals("--")) {
+            Repository.abort("Incorrect operands.");
+        }
         overwriteOne(commitName, fileName);
         // unstageOne(fileName);
         // Only version 3 (checkout of a full branch) modifies the staging area:
@@ -346,7 +361,6 @@ public class Repository {
     }
 
     /** helper function for Staged2Commited().
-     *
      * @param commit
      */
     private static void moveFromStaged2Commited(Commit commit) {
