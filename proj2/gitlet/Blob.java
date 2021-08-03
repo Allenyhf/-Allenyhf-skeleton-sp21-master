@@ -29,7 +29,7 @@ public class Blob implements Serializable {
         File file = Utils.join(Repository.CWD, name);
         File outfile = Utils.join(Repository.STAGE_DIR, sha1Id);
         secureCopyFile(file, outfile);
-        loadBlobMap(sha1Id, name);
+        putBlobMap(sha1Id, name);
         saveBlobMap();
     }
 
@@ -39,7 +39,7 @@ public class Blob implements Serializable {
 //        blobMap = getTreeMap(blobMap, false);
 //        blobMap.remove(name);
         if (toRemoval) {
-            loadremoval(name, sha1Id);
+            putremoval(name, sha1Id);
             saveremoval();
         }
     }
@@ -50,7 +50,7 @@ public class Blob implements Serializable {
      * @param key SHA1 of the new-added file.
      * @param value name of the new-added file.
      */
-    public static void loadBlobMap(String key, String value) {
+    public static void putBlobMap(String key, String value) {
         blobMap = getTreeMap(blobMap, false);
         blobMap.put(key, value);
     }
@@ -61,9 +61,17 @@ public class Blob implements Serializable {
      * @param key SHA1 of the new-removed file.
      * @param value name of the new-removed file.
      */
-    public static void loadremoval(String key, String value) {
+    public static void putremoval(String key, String value) {
         removal = getTreeMap(removal, true);
         removal.put(key, value);
+    }
+
+    public static void loadBlobMap() {
+        blobMap = getTreeMap(blobMap, false);
+    }
+
+    public static void loadremoval() {
+        removal = getTreeMap(removal, true);
     }
 
     /** Save removal into file system.
@@ -155,7 +163,7 @@ public class Blob implements Serializable {
     }
 
     /** Check if unstage area is empty. */
-    public static boolean isRemovalNotEmpty() {
+    public static boolean isRemovalEmpty() {
         removal = getTreeMap(removal, true);
         if (removal == null || removal.isEmpty()) {
             return true;

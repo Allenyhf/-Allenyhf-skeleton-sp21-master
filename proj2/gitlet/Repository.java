@@ -342,6 +342,7 @@ public class Repository {
     private static void staged2Commited(Commit commit) {
         moveFromStaged2Commited(commit);
         Blob.deleteBlobMap();
+        Blob.deleteRemoval();
     }
 
     /** helper function for Staged2Commited().
@@ -350,17 +351,16 @@ public class Repository {
      */
     private static void moveFromStaged2Commited(Commit commit) {
         List<String> listOfStaged = plainFilenamesIn(STAGE_DIR);
-        Blob.removal = Blob.getTreeMap(Blob.removal, true);
-        Blob.blobMap = Blob.getTreeMap(Blob.blobMap, false);
-        if (Blob.blobMap.isEmpty() && (!Blob.isRemovalNotEmpty())) {
+        Blob.loadremoval();
+        Blob.loadBlobMap();
+        if (Blob.blobMap.isEmpty() && Blob.isRemovalEmpty()) {
             abort("No changes added to the commit.");
         }
 
         File tmpfile;
         File destfile;
-        Boolean isRmNotEmpty = Blob.isRemovalNotEmpty();
+        Boolean isRmNotEmpty = !Blob.isRemovalEmpty();
         for (String file: listOfStaged) { // file is a SHA1 String
-
             tmpfile = Utils.join(STAGE_DIR, file);
             String name = Blob.blobMap.get(file); // name: hello.c (for example)
 
@@ -368,9 +368,6 @@ public class Repository {
             Date date = calendar.getTime();
             String shaId = Utils.sha1(name + date.toString());
 
-            if ( isRmNotEmpty && Blob.removal.containsKey(name)) {
-                continue;
-            }
             if (commit.fileMap.containsKey(name)) {
                 commit.fileMap.replace(name, shaId);
             } else {
@@ -385,6 +382,14 @@ public class Repository {
                 System.out.println(excp.getMessage());
             }
             tmpfile.delete();
+        }
+        if (!isRmNotEmpty) {
+            return;
+        }
+        for (Map.Entry<String, String> entry : Blob.removal.entrySet()) {
+            if (commit.fileMap.containsKey(entry.getKey())) {
+                commit.fileMap.remove(entry.getKey());
+            }
         }
     }
 
