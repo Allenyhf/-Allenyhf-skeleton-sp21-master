@@ -55,7 +55,11 @@ public class Repository {
      *  1 January 1970 in whatever format you choose for dates.
      */
     public static void init() {
-
+        if (Repository.GITLET_DIR.exists()) {
+            Repository.abort("A Gitlet version-control system already exists in the current directory.");
+        } else {
+            Repository.mkalldir();
+        }
         Commit initial = new Commit("initial commit", null);
         initial.saveCommit();
         HEAD.initialize(initial.getSHA1());
@@ -72,6 +76,7 @@ public class Repository {
      *  @param filename
      */
     public static void add(String filename) {
+//        Repository.mkalldir();
         File addedfile = join(CWD, filename);
         /** File named filename doesn't exists, or it is a directory, just exit. */
         if (!addedfile.exists()) {
@@ -118,6 +123,7 @@ public class Repository {
      * @param msg
      */
     public static void commit(String msg) {
+//        Repository.mkalldir();
         Commit commit = new Commit(msg, HEAD.whichCommit());
         CopySnapshot(commit);
         Staged2Commited(commit);
@@ -132,6 +138,7 @@ public class Repository {
      * unless it is tracked in the current commit).
      */
     public static void rm(String filename) {
+//        Repository.mkalldir();
         boolean iSinCommit = checkCommit2Unstaged(filename);
         boolean iSinStage = unstageOne(filename);
         if (!iSinCommit && !iSinStage) {
@@ -150,6 +157,7 @@ public class Repository {
      * and the commit message.
      */
     public static void log() {
+//        Repository.mkalldir();
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
         String parent;
         while (true) {
@@ -168,6 +176,7 @@ public class Repository {
      *  will help you iterate over files within a directory.
      */
     public static void globalLog() {
+//        Repository.mkalldir();
         List<String> fileList = Utils.plainFilenamesIn(INFOCOMMIT_DIR);
         Commit commit;
 
@@ -219,6 +228,7 @@ public class Repository {
      */
     public static void checkout(String filename, Boolean bool) {
         // checkout -- [file name]
+//        Repository.mkalldir();
         String commitId = HEAD.whichCommit();
         overwriteOne(commitId, filename);
         // unstageOne(filename);
@@ -239,6 +249,7 @@ public class Repository {
      */
     public static void checkout(String branchName) {
         // checkout [branch name]
+//        Repository.mkalldir();
         if (branchName.equals(HEAD.pointBranchName)) {
             return;
         }
@@ -256,6 +267,7 @@ public class Repository {
      */
     public static void checkout(String commitName, String fileName) {
         // checkout [commit id] -- [file name]
+//        Repository.mkalldir();
         overwriteOne(commitName, fileName);
         // unstageOne(fileName);
         // Only version 3 (checkout of a full branch) modifies the staging area:
@@ -620,10 +632,12 @@ public class Repository {
 
 
     public static void main(String[] args) {
+        Formatter fmt = new Formatter();
         Calendar cal = Calendar.getInstance();
         cal.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
+        fmt.format("%ta %tb %td %tr %tY %tz", cal, cal, cal, cal, cal, cal);
         Date date = cal.getTime();
-        System.out.println(date.toString());
+        System.out.println(fmt);
 
         if (args.length == 0) {
             System.out.println("select --> blobMap, commit, remove, branch");

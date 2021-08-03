@@ -50,14 +50,15 @@ public class Commit implements Serializable {
         if (p == null) {
             // This is the "initial Commit"
 
-            Date date = calendar.getTime();
-            dateString = date.toString();
+//            Date date = calendar.getTime();
+//            dateString = date.toString();
 //            dateString = formatter.format(startTime);
+            dateString = Utils.getFormattedTime();
             fileMap = null;
         } else {
-
-            Date date = calendar.getTime();
-            dateString = date.toString();
+            dateString = Utils.getFormattedTime();
+//            Date date = calendar.getTime();
+//            dateString = date.toString();
 //            dateString = formatter.format(startTime);
         }
 //        System.out.println(dateString);

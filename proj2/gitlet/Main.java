@@ -15,8 +15,10 @@ public class Main {
             System.exit(0);
         }
 
-        Repository.mkalldir();
         String firstArg = args[0];
+        if (!firstArg.equals("init")) {
+            Repository.mkalldir();
+        }
         switch(firstArg) {
             case "init":
                 // handle the `init` command

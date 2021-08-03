@@ -15,9 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Formatter;
-import java.util.List;
+import java.util.*;
 
 
 /** Assorted utilities.
@@ -266,6 +264,16 @@ class Utils {
         } catch (IOException excp) {
             System.out.println(excp.getMessage());
         }
+    }
+
+    public static String getFormattedTime() {
+        Formatter fmt = new Formatter();
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
+        fmt.format("%ta %tb %td %tr %tY %tz", cal, cal, cal, cal, cal, cal);
+        // Date date = cal.getTime();
+        // System.out.println(fmt);
+        return fmt.toString();
     }
 
 }
