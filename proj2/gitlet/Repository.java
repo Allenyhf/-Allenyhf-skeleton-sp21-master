@@ -214,7 +214,7 @@ public class Repository {
         printStagedFiles(nameSet);
         printRemovedFiles(nameSet);
         printModifications(nameSet);
-        printUntrackedFiles(nameSet);
+//        printUntrackedFiles(nameSet);
     }
 
     /**
