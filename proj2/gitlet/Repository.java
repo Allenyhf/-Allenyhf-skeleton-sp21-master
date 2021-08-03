@@ -76,7 +76,6 @@ public class Repository {
      *  @param filename
      */
     public static void add(String filename) {
-//        Repository.mkalldir();
         File addedfile = join(CWD, filename);
         /** File named filename doesn't exists, or it is a directory, just exit. */
         if (!addedfile.exists()) {
@@ -123,9 +122,8 @@ public class Repository {
      * @param msg
      */
     public static void commit(String msg) {
-//        Repository.mkalldir();
         Commit commit = new Commit(msg, HEAD.whichCommit());
-        CopySnapshot(commit);
+        copySnapshot(commit);
         staged2Commited(commit);
         HEAD.switch2commit(commit.getSHA1());
         commit.saveCommit();
@@ -138,7 +136,6 @@ public class Repository {
      * unless it is tracked in the current commit).
      */
     public static void rm(String filename) {
-//        Repository.mkalldir();
         boolean iSinCommit = checkCommit2Unstaged(filename);
         boolean iSinStage = unstageOne(filename);
         if (!iSinCommit && !iSinStage) {
@@ -157,7 +154,6 @@ public class Repository {
      * and the commit message.
      */
     public static void log() {
-//        Repository.mkalldir();
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
         String parent;
         while (true) {
@@ -228,7 +224,6 @@ public class Repository {
      */
     public static void checkout(String filename, Boolean bool) {
         // checkout -- [file name]
-//        Repository.mkalldir();
         String commitId = HEAD.whichCommit();
         overwriteOne(commitId, filename);
         // unstageOne(filename);
@@ -249,7 +244,6 @@ public class Repository {
      */
     public static void checkout(String branchName) {
         // checkout [branch name]
-//        Repository.mkalldir();
         if (branchName.equals(HEAD.pointBranchName)) {
             return;
         }
@@ -267,7 +261,6 @@ public class Repository {
      */
     public static void checkout(String commitName, String fileName) {
         // checkout [commit id] -- [file name]
-//        Repository.mkalldir();
         overwriteOne(commitName, fileName);
         // unstageOne(fileName);
         // Only version 3 (checkout of a full branch) modifies the staging area:
