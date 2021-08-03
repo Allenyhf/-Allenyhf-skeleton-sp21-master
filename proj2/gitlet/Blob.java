@@ -1,10 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.TreeMap;
 
 import static gitlet.Utils.*;
@@ -115,6 +112,17 @@ public class Blob implements Serializable {
     }
 
     /**
+     *  Delete removal from file system.
+     *  It is used for clear staged imformation.
+     */
+    public static void deleteRemoval() {
+        File removal = Utils.join(Repository.INFOSTAGE_DIR, "removal");
+        if (removal.exists()) {
+            removal.delete();
+        }
+    }
+
+    /**
      * Delete key from blobMap.
      */
     public static void deteleItem(String key) {
@@ -144,5 +152,14 @@ public class Blob implements Serializable {
         removal = getTreeMap(removal, true);
         removal.remove(name);
         saveremoval();
+    }
+
+    /** Check if unstage area is empty. */
+    public static boolean isRemovalNotEmpty() {
+        removal = getTreeMap(removal, true);
+        if (removal == null || removal.isEmpty()) {
+            return true;
+        }
+        return false;
     }
 }

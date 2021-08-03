@@ -49,17 +49,10 @@ public class Commit implements Serializable {
         Calendar calendar = Calendar.getInstance();
         if (p == null) {
             // This is the "initial Commit"
-
-//            Date date = calendar.getTime();
-//            dateString = date.toString();
-//            dateString = formatter.format(startTime);
             dateString = Utils.getFormattedTime();
             fileMap = null;
         } else {
             dateString = Utils.getFormattedTime();
-//            Date date = calendar.getTime();
-//            dateString = date.toString();
-//            dateString = formatter.format(startTime);
         }
 //        System.out.println(dateString);
         sha1Id = Utils.sha1(message + parent + dateString);

@@ -56,8 +56,8 @@ public class Repository {
      */
     public static void init() {
         if (Repository.GITLET_DIR.exists()) {
-            Repository.abort("A Gitlet version-control system already exists " +
-                    "in the current directory.");
+            Repository.abort("A Gitlet version-control system already exists "
+                    + "in the current directory.");
         } else {
             Repository.mkalldir();
         }
@@ -132,6 +132,7 @@ public class Repository {
         if (msg.length() == 0) {
             Repository.abort("Please enter a commit message.");
         }
+
         Commit commit = new Commit(msg, HEAD.whichCommit());
         copySnapshot(commit);
         staged2Commited(commit);
@@ -310,12 +311,12 @@ public class Repository {
      *  may be abbreviated as for checkout. The staging area is cleared. The command is essentially
      *  checkout of an arbitrary commit that also changes the current branch head.
     */
-     public static void reset(String commitID) {
-         deleteCWDall();
-         HEAD.switch2commit(commitID);
-         overwriteAll(commitID);
-         unstageAll();
-     }
+    public static void reset(String commitID) {
+        deleteCWDall();
+        HEAD.switch2commit(commitID);
+        overwriteAll(commitID);
+        unstageAll();
+    }
 
     public static void merge() {
 
@@ -349,14 +350,15 @@ public class Repository {
      */
     private static void moveFromStaged2Commited(Commit commit) {
         List<String> listOfStaged = plainFilenamesIn(STAGE_DIR);
-
+        Blob.removal = Blob.getTreeMap(Blob.removal, true);
         Blob.blobMap = Blob.getTreeMap(Blob.blobMap, false);
-        if (Blob.blobMap.isEmpty()) {
+        if (Blob.blobMap.isEmpty() && (!Blob.isRemovalNotEmpty())) {
             abort("No changes added to the commit.");
         }
 
         File tmpfile;
         File destfile;
+        Boolean isRmNotEmpty = Blob.isRemovalNotEmpty();
         for (String file: listOfStaged) { // file is a SHA1 String
 
             tmpfile = Utils.join(STAGE_DIR, file);
@@ -366,6 +368,9 @@ public class Repository {
             Date date = calendar.getTime();
             String shaId = Utils.sha1(name + date.toString());
 
+            if ( isRmNotEmpty && Blob.removal.containsKey(name)) {
+                continue;
+            }
             if (commit.fileMap.containsKey(name)) {
                 commit.fileMap.replace(name, shaId);
             } else {
@@ -379,7 +384,6 @@ public class Repository {
             } catch (IOException excp) {
                 System.out.println(excp.getMessage());
             }
-//            Utils.secureCopyFile(tmpfile.toPath(), destfile.toPath());
             tmpfile.delete();
         }
     }
