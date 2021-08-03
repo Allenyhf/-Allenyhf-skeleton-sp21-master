@@ -56,7 +56,8 @@ public class Repository {
      */
     public static void init() {
         if (Repository.GITLET_DIR.exists()) {
-            Repository.abort("A Gitlet version-control system already exists in the current directory.");
+            Repository.abort("A Gitlet version-control system already exists " +
+                    "in the current directory.");
         } else {
             Repository.mkalldir();
         }
@@ -128,6 +129,9 @@ public class Repository {
      * @param msg
      */
     public static void commit(String msg) {
+        if (msg.length() == 0) {
+            Repository.abort("Please enter a commit message.");
+        }
         Commit commit = new Commit(msg, HEAD.whichCommit());
         copySnapshot(commit);
         staged2Commited(commit);
@@ -274,10 +278,11 @@ public class Repository {
     }
 
     /**
-     * Creates a new branch with the given name, and points it at the current head commit. A branch
-     * is nothing more than a name for a reference (a SHA-1 identifier) to a commit node. This command
-     * does NOT immediately switch to the newly created branch (just as in real Git). Before you ever
-     * call branch, your code should be running with a default branch called master.
+     * Creates a new branch with the given name, and points it at the current head commit.
+     * A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit
+     * node. This command does NOT immediately switch to the newly created branch (just as
+     * in real Git). Before you ever call branch, your code should be running with a default
+     * branch called master.
      */
     public static void branch(String branchName) {
         if (Branch.isBranchExist(branchName)) {
@@ -299,11 +304,11 @@ public class Repository {
     }
 
     /**
-     *  Checks out all the files tracked by the given commit. Removes tracked files that are not present
-     *  in that commit. Also moves the current branch’s head to that commit node. See the intro for an
-     *  example of what happens to the head pointer after using reset. The [commit id] may be abbreviated
-     *  as for checkout. The staging area is cleared. The command is essentially checkout of an arbitrary
-     *  commit that also changes the current branch head.
+     *  Checks out all the files tracked by the given commit. Removes tracked files that are not
+     *  present in that commit. Also moves the current branch’s head to that commit node. See the
+     *  intro for an example of what happens to the head pointer after using reset. The [commit id]
+     *  may be abbreviated as for checkout. The staging area is cleared. The command is essentially
+     *  checkout of an arbitrary commit that also changes the current branch head.
     */
      public static void reset(String commitID) {
          deleteCWDall();
@@ -334,7 +339,6 @@ public class Repository {
      * @param commit
      */
     private static void staged2Commited(Commit commit) {
-//        commit.fileMap = Blob.getBlobMap();
         moveFromStaged2Commited(commit);
         Blob.deleteBlobMap();
     }
@@ -480,7 +484,7 @@ public class Repository {
             abort("");
         }
         String value;
-        for (Map.Entry<String,String> entry : blobMap.entrySet()) {
+        for (Map.Entry<String, String> entry : blobMap.entrySet()) {
             value = entry.getValue();
             nameSet.add(value);
             System.out.println(value);
@@ -546,8 +550,8 @@ public class Repository {
         Commit commit = Commit.readCommitFromFile(commitSHA);
 
         for (Map.Entry<String, String> entry : commit.fileMap.entrySet()) {
-            String SHA1 = commit.fileMap.get(entry.getKey());
-            File dir = Utils.join(Repository.COMMITED_DIR, SHA1);
+            String shaId = commit.fileMap.get(entry.getKey());
+            File dir = Utils.join(Repository.COMMITED_DIR, shaId);
             File dest = join(CWD, entry.getKey());
             Utils.secureCopyFile(dir, dest);
         }

@@ -95,6 +95,10 @@ public class Main {
             case "merge":
                 //
                 break;
+
+            default:
+                Repository.abort("No command with that name exists.");
+                break;
         }
     }
 }
