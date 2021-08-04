@@ -118,4 +118,10 @@ public class Commit implements Serializable {
         return dir;
     }
 
+    public boolean isFilemapContains(String key) {
+        if (this.fileMap == null) {
+            return false;
+        }
+        return this.fileMap.containsKey(key);
+    }
 }

@@ -2,6 +2,8 @@ package gitlet;
 
 // import com.sun.source.tree.Tree;
 
+import jdk.jshell.execution.Util;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,12 +43,15 @@ public class Repository {
     /** The .gitlet/branch_dir directory. */
     public static final File BRANCH_DIR = join(GITLET_DIR, "branch_dir");
 
+    public static List<String> modifiedNotStaged = new ArrayList<>();
+    public static List<String> untracked = new ArrayList<>();
+
     /**
      *  Create a new Gitlet version-control system in the current directory.
      *
      *  Start a initial commit automatically with a message "initial commit",
      *  a single branch "master" which initially points to this inital commit.
-     *  And create a HEAD, which indicates where current branch we are at now.
+     *  And create a HEAD, which indicates where current branch we are now.
      *
      *  In addition, save the new created initial Commit, master branch,
      *  HEAD branch to the file system for future use.
@@ -228,11 +233,13 @@ public class Repository {
         if (commitList.isEmpty()) {
             Repository.abort("Not in an initialized Gitlet directory.");
         }
+        getUntracked();
+        getModifiedNotStaged();
         printBranch();
         printStagedFiles(nameSet);
         printRemovedFiles(nameSet);
-        printModifications(nameSet);
-        printUntrackedFiles(nameSet);
+        printModifications();
+        printUntrackedFiles();
     }
 
     /**
@@ -255,8 +262,8 @@ public class Repository {
 
     /**
      *  Takes all files in the commit at the head of the given branch, and puts them in the
-     *  working directory, overwriting the versions of the files that are already there if they
-     *  exist.
+     *  working directory, overwriting the versions of the files that are already there if
+     *  they exist.
      *  Also, at the end of this command, the given branch will now be considered the
      *  current branch (HEAD). Any files that are tracked in the current branch but are not
      *  present in the checked-out branch are deleted.
@@ -270,7 +277,6 @@ public class Repository {
             abort("No need to checkout the current branch.");
         }
         List<String> branchList = Utils.plainFilenamesIn(BRANCH_DIR);
-//        File branchFile = Utils.join(BRANCH_DIR, branchName);
         if (!branchList.contains(branchName)) {
             abort("No such branch exists.");
         }
@@ -402,9 +408,11 @@ public class Repository {
             }
             tmpfile.delete();
         }
+
         if (!isRmNotEmpty) {
             return;
         }
+        /** Remove the entry of unstaged files from fileMap. */
         for (Map.Entry<String, String> entry : Blob.removal.entrySet()) {
             if (commit.fileMap.containsKey(entry.getKey())) {
                 commit.fileMap.remove(entry.getKey());
@@ -542,22 +550,20 @@ public class Repository {
      *  Not staged for removal, but tracked in the current commit and deleted from the
      *  working directory.
      * */
-    private static void printModifications(Set<String> nameSet) {
+    private static void printModifications() {
         System.out.println("=== Modifications Not Staged For Commit ===");
-        List<String> stageList = Utils.plainFilenamesIn(STAGE_DIR);
+        for (String filename: modifiedNotStaged) {
+            System.out.println(filename);
+        }
         System.out.println();
     }
 
     /** Helper function for status(). */
-    private static void printUntrackedFiles(Set<String> nameSet) {
+    private static void printUntrackedFiles() {
         System.out.println("=== Untracked Files ===");
-//        List<String> fileList = Utils.plainFilenamesIn(CWD);
-//        for (String filename: fileList) {
-//            if (nameSet.contains(filename)) {
-//                continue;
-//            }
-//            System.out.println(filename);
-//        }
+        for (String filename: untracked) {
+            System.out.println(filename);
+        }
         System.out.println();
     }
 
@@ -585,6 +591,62 @@ public class Repository {
             File dir = Utils.join(Repository.COMMITED_DIR, shaId);
             File dest = join(CWD, entry.getKey());
             Utils.secureCopyFile(dir, dest);
+        }
+    }
+
+    public static void getModifiedNotStaged() {
+        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
+        List<String> fileList = Utils.plainFilenamesIn(Repository.CWD);
+        Blob.loadBlobMap();
+        Blob.loadremoval();
+        for (String file : fileList) {
+            if ((Blob.blobMap == null  || !Blob.blobMap.containsKey(file))
+                    && currentCommit.isFilemapContains(file)) {
+                /** Committed but changed and unstaged. */
+                File rawfile = Utils.join(COMMITED_DIR, currentCommit.fileMap.get(file));
+                File cwdfile= Utils.join(CWD, file);
+                if (!isFileSame(cwdfile, rawfile)) {
+                    modifiedNotStaged.add(file);
+                }
+            } else if (!currentCommit.isFilemapContains(file) &&
+                    Blob.blobMap != null && Blob.blobMap.containsKey(file)) {
+                /** Staged but not commited and changed.*/
+                modifiedNotStaged.add(file);
+            }
+        }
+
+        if (Blob.blobMap != null) {
+            for (Map.Entry<String, String> entry : Blob.blobMap.entrySet()) {
+                if (!fileList.contains(entry.getKey())) {
+                    /** file is deleted. */
+                    modifiedNotStaged.add(entry.getKey());
+                }
+            }
+        }
+
+        if (currentCommit.fileMap != null) {
+        for (Map.Entry<String, String> entry : currentCommit.fileMap.entrySet()) {
+            if (!fileList.contains(entry.getKey())  &&
+                    (Blob.removal == null || !Blob.removal.containsKey(entry.getKey()))) {
+                /** Committed and deleted but not unstaged. **/
+                modifiedNotStaged.add(entry.getKey());
+            }
+        }
+        }
+    }
+
+
+    public static void getUntracked() {
+        Blob.loadBlobMap();
+        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
+        List<String> fileList = Utils.plainFilenamesIn(CWD);
+        for (String file : fileList) {
+            /** Files presents in CWD, but neither staged nor tracked. **/
+//            System.out.println(file);
+            if (!Blob.blobMap.containsValue(file))
+                if ( currentCommit.fileMap == null || !currentCommit.fileMap.containsKey(file)) {
+                    untracked.add(file);
+            }
         }
     }
 
