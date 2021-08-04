@@ -647,7 +647,7 @@ public class Repository {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
         for (String file : fileList) {
-            if (!currentCommit.isFilemapContains(file)) {
+            if (!currentCommit.isFilemapContains(file) && Blob.isBlobmapContains(file)) {
                 abort("There is an untracked file in the way; "
                         + "delete it, or add and commit it first.");
             }
