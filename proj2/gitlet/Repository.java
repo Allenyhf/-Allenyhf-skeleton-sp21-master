@@ -233,8 +233,8 @@ public class Repository {
         if (commitList.isEmpty()) {
             Repository.abort("Not in an initialized Gitlet directory.");
         }
-        getUntracked();
-        getModifiedNotStaged();
+//        getUntracked();
+//        getModifiedNotStaged();
         printBranch();
         printStagedFiles(nameSet);
         printRemovedFiles(nameSet);
@@ -552,8 +552,43 @@ public class Repository {
      * */
     private static void printModifications() {
         System.out.println("=== Modifications Not Staged For Commit ===");
-        for (String filename: modifiedNotStaged) {
-            System.out.println(filename);
+
+        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
+        List<String> fileList = Utils.plainFilenamesIn(Repository.CWD);
+        Blob.loadBlobMap();
+        Blob.loadremoval();
+        for (String file : fileList) {
+            if ((Blob.blobMap == null  || !Blob.blobMap.containsKey(file))
+                    && currentCommit.isFilemapContains(file)) {
+                /** Committed but changed and unstaged. */
+                File rawfile = Utils.join(COMMITED_DIR, currentCommit.fileMap.get(file));
+                File cwdfile= Utils.join(CWD, file);
+                if (!isFileSame(cwdfile, rawfile)) {
+                    System.out.println(file + "(modified)");
+                }
+            } else if (!currentCommit.isFilemapContains(file) && Blob.blobMap != null && Blob.blobMap.containsKey(file)) {
+                /** Staged but not commited and changed.*/
+                System.out.println(file + "(modified)");
+            }
+        }
+
+        if (Blob.blobMap != null) {
+            for (Map.Entry<String, String> entry : Blob.blobMap.entrySet()) {
+                if (!fileList.contains(entry.getValue())) {
+                    /** file is deleted. */
+                    System.out.println(entry.getValue() + "(deleted)");
+                }
+            }
+        }
+
+        if (currentCommit.fileMap != null) {
+            for (Map.Entry<String, String> entry : currentCommit.fileMap.entrySet()) {
+                if (!fileList.contains(entry.getKey())  &&
+                        (Blob.removal == null || !Blob.removal.containsKey(entry.getKey()))) {
+                    /** Committed and deleted but not unstaged. **/
+                    System.out.println(entry.getKey() + "(deleted)");
+                }
+            }
         }
         System.out.println();
     }
@@ -561,8 +596,15 @@ public class Repository {
     /** Helper function for status(). */
     private static void printUntrackedFiles() {
         System.out.println("=== Untracked Files ===");
-        for (String filename: untracked) {
-            System.out.println(filename);
+        Blob.loadBlobMap();
+        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
+        List<String> fileList = Utils.plainFilenamesIn(CWD);
+        for (String file : fileList) {
+            /** Files presents in CWD, but neither staged nor tracked. **/
+            if (!Blob.blobMap.containsValue(file))
+                if ( currentCommit.fileMap == null || !currentCommit.fileMap.containsKey(file)) {
+                    System.out.println(file);
+                }
         }
         System.out.println();
     }
@@ -595,44 +637,7 @@ public class Repository {
     }
 
     public static void getModifiedNotStaged() {
-        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        List<String> fileList = Utils.plainFilenamesIn(Repository.CWD);
-        Blob.loadBlobMap();
-        Blob.loadremoval();
-        for (String file : fileList) {
-            if ((Blob.blobMap == null  || !Blob.blobMap.containsKey(file))
-                    && currentCommit.isFilemapContains(file)) {
-                /** Committed but changed and unstaged. */
-                File rawfile = Utils.join(COMMITED_DIR, currentCommit.fileMap.get(file));
-                File cwdfile= Utils.join(CWD, file);
-                if (!isFileSame(cwdfile, rawfile)) {
-                    modifiedNotStaged.add(file);
-                }
-            } else if (!currentCommit.isFilemapContains(file) &&
-                    Blob.blobMap != null && Blob.blobMap.containsKey(file)) {
-                /** Staged but not commited and changed.*/
-                modifiedNotStaged.add(file);
-            }
-        }
 
-        if (Blob.blobMap != null) {
-            for (Map.Entry<String, String> entry : Blob.blobMap.entrySet()) {
-                if (!fileList.contains(entry.getKey())) {
-                    /** file is deleted. */
-                    modifiedNotStaged.add(entry.getKey());
-                }
-            }
-        }
-
-        if (currentCommit.fileMap != null) {
-        for (Map.Entry<String, String> entry : currentCommit.fileMap.entrySet()) {
-            if (!fileList.contains(entry.getKey())  &&
-                    (Blob.removal == null || !Blob.removal.containsKey(entry.getKey()))) {
-                /** Committed and deleted but not unstaged. **/
-                modifiedNotStaged.add(entry.getKey());
-            }
-        }
-        }
     }
 
 
