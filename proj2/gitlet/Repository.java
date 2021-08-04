@@ -2,7 +2,7 @@ package gitlet;
 
 // import com.sun.source.tree.Tree;
 
-import jdk.jshell.execution.Util;
+// import jdk.jshell.execution.Util;
 
 import java.io.File;
 import java.io.IOException;
@@ -556,18 +556,20 @@ public class Repository {
         Blob.loadBlobMap();
         Blob.loadremoval();
         for (String file : fileList) {
-            if ((Blob.blobMap == null  || !Blob.isBlobmapContains(file)) && currentCommit.isFilemapContains(file)) {
+            if ((Blob.blobMap == null  || !Blob.isBlobmapContains(file))
+                    && currentCommit.isFilemapContains(file)) {
                 /** Committed but changed and unstaged. */
                 File rawfile = Utils.join(COMMITED_DIR, currentCommit.fileMap.get(file));
-                File cwdfile= Utils.join(CWD, file);
+                File cwdfile = Utils.join(CWD, file);
                 if (!isFileSame(cwdfile, rawfile)) {
                     System.out.println(file + "(modified)");
                 }
-            } else if (!currentCommit.isFilemapContains(file) && Blob.blobMap != null && Blob.isBlobmapContains(file)) {
+            } else if (!currentCommit.isFilemapContains(file)
+                    && Blob.blobMap != null && Blob.isBlobmapContains(file)) {
                 /** Staged but not commited and changed.*/
                 String sha1 = Utils.sha1(file);
                 File rawfile = Utils.join(STAGE_DIR, sha1);
-                File cwdfile= Utils.join(CWD, file);
+                File cwdfile = Utils.join(CWD, file);
                 if (!isFileSame(cwdfile, rawfile)) {
                     System.out.println(file + "(modified)");
                 }
@@ -585,8 +587,8 @@ public class Repository {
 
         if (currentCommit.fileMap != null) {
             for (Map.Entry<String, String> entry : currentCommit.fileMap.entrySet()) {
-                if (!fileList.contains(entry.getKey())  &&
-                        (Blob.removal == null || !Blob.isRemovalContains(entry.getKey()))) {
+                if (!fileList.contains(entry.getKey())
+                        && (Blob.removal == null || !Blob.isRemovalContains(entry.getKey()))) {
                     /** Committed and deleted but not unstaged. **/
                     System.out.println(entry.getKey() + "(deleted)");
                 }
@@ -603,10 +605,11 @@ public class Repository {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         for (String file : fileList) {
             /** Files presents in CWD, but neither staged nor tracked. **/
-            if (!Blob.isBlobmapContains(file))
-                if ( currentCommit.fileMap == null || !currentCommit.isFilemapContains(file)) {
+            if (!Blob.isBlobmapContains(file)) {
+                if (currentCommit.fileMap == null || !currentCommit.isFilemapContains(file)) {
                     System.out.println(file);
                 }
+            }
         }
         System.out.println();
     }
@@ -644,7 +647,8 @@ public class Repository {
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
         for (String file : fileList) {
             if (!currentCommit.isFilemapContains(file)) {
-                abort("There is an untracked file in the way; delete it, or add and commit it first.");
+                abort("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
             }
         }
     }
