@@ -336,6 +336,7 @@ public class Repository {
      *  checkout of an arbitrary commit that also changes the current branch head.
     */
     public static void reset(String commitID) {
+        checkUntracked();
         deleteCWDall();
         HEAD.switch2commit(commitID);
         overwriteAll(commitID);
