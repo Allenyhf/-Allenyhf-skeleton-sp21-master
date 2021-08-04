@@ -15,17 +15,15 @@ import static gitlet.Utils.*;
 public class Blob implements Serializable {
 
     /** Map from filename to SHA1 for each added file */
-    // TreeMap for staged.
+    /* TreeMap for staged. */
     protected static TreeMap<String, String> blobMap;
-    // TreeMap for unstaged.
+    /* TreeMap for unstaged. */
     protected static TreeMap<String, String> removal;
 
-    /**
-     *  Serialize and save file named "name" in CWD into .gitlet/staged_obj in CWD
+    /** Serialize and save file named "name" in CWD into .gitlet/staged_obj in CWD
      *  and update the blobMap to File System.
      */
     public static void add(String name) {
-
         String sha1Id = Utils.sha1(name);
         File file = Utils.join(Repository.CWD, name);
         File outfile = Utils.join(Repository.STAGE_DIR, sha1Id);
@@ -56,8 +54,7 @@ public class Blob implements Serializable {
         blobMap.put(key, value);
     }
 
-    /**
-     *  Load removal from file system, if not exists create new one.
+    /** Load removal from file system, if not exists create new one.
      *  Then put the key-value pair <SHA1, name> of the new-removed file into it.
      * @param key SHA1 of the new-removed file.
      * @param value name of the new-removed file.
@@ -67,10 +64,14 @@ public class Blob implements Serializable {
         removal.put(key, value);
     }
 
+    /** Load blobMap from file system, if not exists create new one.
+     *  */
     public static void loadBlobMap() {
         blobMap = getTreeMap(blobMap, false);
     }
 
+    /** Load removal from file system, if not exists create new one.
+     *  */
     public static void loadremoval() {
         removal = getTreeMap(removal, true);
     }
@@ -109,8 +110,7 @@ public class Blob implements Serializable {
         return map;
     }
 
-    /**
-     *  Delete blobMap from file system.
+    /** Delete blobMap from file system.
      *  It is used for clear staged imformation.
      */
     public static void deleteBlobMap() {
@@ -120,8 +120,7 @@ public class Blob implements Serializable {
         }
     }
 
-    /**
-     *  Delete removal from file system.
+    /** Delete removal from file system.
      *  It is used for clear staged imformation.
      */
     public static void deleteRemoval() {
@@ -131,9 +130,7 @@ public class Blob implements Serializable {
         }
     }
 
-    /**
-     * Delete key from blobMap.
-     */
+    /** Delete key from blobMap. */
     public static void deteleItem(String key) {
         File blobmapfile = Utils.join(Repository.INFOSTAGE_DIR, "blobMap");
         if (blobmapfile.exists()) {
@@ -143,8 +140,7 @@ public class Blob implements Serializable {
         }
     }
 
-    /**
-     * Check if removal contains file "name"
+    /** Check if removal contains file "name".
      * @param name
      * @return
      */
@@ -168,7 +164,7 @@ public class Blob implements Serializable {
         return flag;
     }
 
-    /** unremove the file "name" **/
+    /** Unremove the file "name" **/
     public static void unremove(String name) {
         removal = getTreeMap(removal, true);
         removal.remove(name);

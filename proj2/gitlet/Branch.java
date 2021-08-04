@@ -43,11 +43,11 @@ public class Branch implements Serializable {
      * @return the Branch
      */
     public static Branch readBranchIn(String name) {
-//        File cwd = new File(System.getProperty("user.dir"));
         File file = join(Repository.BRANCH_DIR, name);
         if (!file.exists()) {
-            System.out.println("No such branch exists. ");
-            System.exit(0);
+//            System.out.println("No such branch exists. ");
+//            System.exit(0);
+            Repository.abort("No such branch exists.");
         }
         Branch result = readObject(file, Branch.class);
         return result;
@@ -78,6 +78,12 @@ public class Branch implements Serializable {
         return file.exists();
     }
 
+    /**
+     *  Delete the Branch whose name is branchName.
+     *  If the Branch is current Branch, just abort.
+     *  If it doesn't exists, just abort.
+     * @param branchName
+     */
     public static void deleteBranch(String branchName) {
         HEAD.readHEAD();
         if (branchName.equals(HEAD.pointBranchName)) { //do not use ==

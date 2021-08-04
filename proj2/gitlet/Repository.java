@@ -91,12 +91,12 @@ public class Repository {
             return;
         }
 
-        // Load current Commit and files in it.
+        /** Load current Commit and files in it. */
         Commit lastCommit = Commit.readCommitFromFile(HEAD.whichCommit());
         File commitedFile = lastCommit.loadfile(filename);
 
-        // Check if file staged is the same as the file in CWD.
-        // If it is, remove it from staging area.
+        /** Check if file staged is the same as the file in CWD. */
+        /** If it is, remove it from staging area. */
         if (commitedFile != null && isFileSame(commitedFile, addedfile)) {
             String sha1 = Utils.sha1(filename);
             File stagedfile = join(STAGE_DIR, sha1);
@@ -183,7 +183,6 @@ public class Repository {
      *  will help you iterate over files within a directory.
      */
     public static void globalLog() {
-//        Repository.mkalldir();
         List<String> fileList = Utils.plainFilenamesIn(INFOCOMMIT_DIR);
         Commit commit;
 
@@ -225,6 +224,10 @@ public class Repository {
      */
     public static void status() {
         Set<String> nameSet = new HashSet<>();
+        List<String> commitList = Utils.plainFilenamesIn(Repository.INFOCOMMIT_DIR);
+        if (commitList.isEmpty()) {
+            Repository.abort("Not in an initialized Gitlet directory.");
+        }
         printBranch();
         printStagedFiles(nameSet);
         printRemovedFiles(nameSet);
@@ -271,9 +274,7 @@ public class Repository {
         if (!branchList.contains(branchName)) {
             abort("No such branch exists.");
         }
-//        if (branchList.contains(branchName)) {
-//            abort("No need to checkout the current branch.");
-//        }
+
         HEAD.switchHEAD(branchName);
         HEAD.saveHEAD();
         deleteCWDall();
