@@ -23,8 +23,8 @@ public class HEAD implements Serializable {
     }
 
     /**
-     *  Make HEAD switch to BranchName.
-     * @param BranchName
+     *  Make HEAD switch to branchName.
+     * @param branchName
      */
     public static void switchHEAD(String branchName) {
         readHEAD();
@@ -58,4 +58,5 @@ public class HEAD implements Serializable {
         Branch pointBranch = Branch.readBranchIn(pointBranchName);
         return pointBranch.whichCommit();
     }
+
 }

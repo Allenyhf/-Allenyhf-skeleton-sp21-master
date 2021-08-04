@@ -74,7 +74,7 @@ public class Branch implements Serializable {
      * @return
      */
     public static Boolean isBranchExist(String name) {
-        File file = join(Repository.BRANCH_DIR, ".gitlet", name);
+        File file = join(Repository.BRANCH_DIR, name);
         return file.exists();
     }
 

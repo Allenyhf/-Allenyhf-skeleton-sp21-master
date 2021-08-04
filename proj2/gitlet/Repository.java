@@ -268,11 +268,15 @@ public class Repository {
         }
         List<String> branchList = Utils.plainFilenamesIn(BRANCH_DIR);
 //        File branchFile = Utils.join(BRANCH_DIR, branchName);
-        if (branchList.contains(branchName)) {
-            abort("No need to checkout the current branch.");
+        if (!branchList.contains(branchName)) {
+            abort("No such branch exists.");
         }
+//        if (branchList.contains(branchName)) {
+//            abort("No need to checkout the current branch.");
+//        }
         HEAD.switchHEAD(branchName);
         HEAD.saveHEAD();
+        deleteCWDall();
         overwriteAll(HEAD.whichCommit());
         unstageAll();
     }
@@ -307,7 +311,7 @@ public class Repository {
 
         Branch newone = new Branch(branchName, HEAD.whichCommit());
         newone.saveBranch();
-        HEAD.switchHEAD(branchName);
+//        HEAD.switchHEAD(branchName);
     }
 
     /**
@@ -571,7 +575,10 @@ public class Repository {
     /** Overwrite all files in CWD in commitSHA. */
     private static void overwriteAll(String commitSHA) {
         Commit commit = Commit.readCommitFromFile(commitSHA);
-
+        if (commit.fileMap == null) {
+            deleteCWDall();
+            return;
+        }
         for (Map.Entry<String, String> entry : commit.fileMap.entrySet()) {
             String shaId = commit.fileMap.get(entry.getKey());
             File dir = Utils.join(Repository.COMMITED_DIR, shaId);
@@ -662,7 +669,6 @@ public class Repository {
     public static void printUnstaged() {
 
     }
-
 
     public static void main(String[] args) {
         Formatter fmt = new Formatter();

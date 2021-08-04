@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.List;
 import java.util.TreeMap;
 
 import static gitlet.Utils.*;
@@ -153,6 +154,18 @@ public class Blob implements Serializable {
             return true;
         }
         return false;
+    }
+
+    public static boolean isCWDallInblobMap() {
+        List<String> fileList = Utils.plainFilenamesIn(Repository.CWD);
+        blobMap = getTreeMap(blobMap, false);
+        boolean flag = true;
+        for (String file : fileList) {
+            if (!blobMap.containsKey(file)) {
+                flag = false;
+            }
+        }
+        return flag;
     }
 
     /** unremove the file "name" **/
