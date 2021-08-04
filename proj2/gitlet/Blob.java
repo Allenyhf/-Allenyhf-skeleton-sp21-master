@@ -152,6 +152,18 @@ public class Blob implements Serializable {
         return false;
     }
 
+    /** Check if blobMap contains file "name".
+     * @param name
+     * @return
+     */
+    public static boolean isBlobmapContains(String name) {
+        blobMap = getTreeMap(blobMap, false);
+        if (blobMap.containsValue(name)) {
+            return true;
+        }
+        return false;
+    }
+
     public static boolean isCWDallInblobMap() {
         List<String> fileList = Utils.plainFilenamesIn(Repository.CWD);
         blobMap = getTreeMap(blobMap, false);
