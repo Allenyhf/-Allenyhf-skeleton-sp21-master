@@ -375,12 +375,7 @@ public class Repository {
 //                        Blob.add(otherFileName);
                     } else {
                         /**In different way: in conflict. **/
-//                        File newFile = Utils.join(CWD, fileName);
-//                        if (newFile.exists()) {
-//                            newFile.delete();
-//                        }
-//                        newFile.createNewFile();
-
+                       overwriteConfilctFile(currentFile, otherFile, fileName);
                     }
                 } else if (!modifiedInCurrent) {
                     /** 1. Modified in other but not in HEAD: be checked out and staged. **/
@@ -394,7 +389,6 @@ public class Repository {
                 }
             } else if (!isInCurrent && !isInOther) {
                 /** Both be removed: be left unchanged. **/
-
             } else if (!isInOther) {
                 String currentFileName = current.getCommitedFileFromFilemap(fileName);
                 String splitFileName = split.getCommitedFileFromFilemap(fileName);
@@ -408,6 +402,7 @@ public class Repository {
                     Blob.remove(fileName, true);
                 } else {
                     /** In different way*/
+                    overwriteConfilctFile(currentFile, null, fileName);
                 }
             } else if (!isInCurrent) {
                 String otherFileName = other.getCommitedFileFromFilemap(fileName);
@@ -420,6 +415,7 @@ public class Repository {
                     // absent.
                 } else {
                     /** In different way. */
+                    overwriteConfilctFile(null, otherFile, fileName);
                 }
             }
         }
@@ -437,6 +433,7 @@ public class Repository {
                 File otherFile = Utils.join(COMMITED_DIR, otherFileName);
                 if (!isFileSame(currentFile, otherFile)) {
                     /** In different way. **/
+                    overwriteConfilctFile(currentFile, otherFile, key);
                 }
             }
         }
@@ -625,7 +622,7 @@ public class Repository {
         }
 
         checkUncommited();
-        checkUntracked();
+//        checkUntracked();
     }
 
     private static void checkUncommited() {
@@ -635,7 +632,28 @@ public class Repository {
         System.out.println("You have uncommitted changes.");
     }
 
-
+    private static void overwriteConfilctFile(File currentFile, File otherFile, String fileName) {
+        File newFile = Utils.join(CWD, fileName);
+        if (newFile.exists()) {
+            newFile.delete();
+        }
+        try {
+            newFile.createNewFile();
+        } catch (IOException ioexcp) {
+            System.out.println(ioexcp.getMessage());
+        }
+        if (currentFile != null && otherFile != null) {
+            byte[] headbyte = readContents(currentFile);
+            byte[] otherbyte = readContents(otherFile);
+            Utils.writeContents(newFile, "<<<<<<< HEAD", headbyte, "=======", otherbyte, ">>>>>>>");
+        } else if (currentFile == null){
+            byte[] otherbyte = readContents(otherFile);
+            Utils.writeContents(newFile, "<<<<<<< HEAD", "=======", otherbyte, ">>>>>>>");
+        } else if (otherFile == null) {
+            byte[] headbyte = readContents(currentFile);
+            Utils.writeContents(newFile, "<<<<<<< HEAD", headbyte, "=======", ">>>>>>>");
+        }
+    }
     /**
      *  Helper function for log(), global-log().
      *  Print the commit information.
@@ -800,11 +818,12 @@ public class Repository {
     }
 
     /** If there are some files untracked, just abort. */
+
     private static void checkUntracked() {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
         for (String file : fileList) {
-            if (!currentCommit.isFilemapContains(file) && !Blob.isBlobmapContains(file)) {
+            if (!currentCommit.isFilemapContains(file)  && !Blob.isBlobmapContains(file)) {
                 abort("There is an untracked file in the way; "
                         + "delete it, or add and commit it first.");
             }
