@@ -375,11 +375,11 @@ public class Repository {
 //                        Blob.add(otherFileName);
                     } else {
                         /**In different way: in conflict. **/
-                        File newFile = Utils.join(CWD, fileName);
-                        if (newFile.exists()) {
-                            newFile.delete();
-                        }
-                        newFile.createNewFile();
+//                        File newFile = Utils.join(CWD, fileName);
+//                        if (newFile.exists()) {
+//                            newFile.delete();
+//                        }
+//                        newFile.createNewFile();
 
                     }
                 } else if (!modifiedInCurrent) {
