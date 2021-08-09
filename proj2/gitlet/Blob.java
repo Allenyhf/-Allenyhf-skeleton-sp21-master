@@ -1,5 +1,7 @@
 package gitlet;
 
+import jdk.jshell.execution.Util;
+
 import java.io.File;
 import java.io.Serializable;
 import java.util.List;
@@ -28,6 +30,15 @@ public class Blob implements Serializable {
         File file = Utils.join(Repository.CWD, name);
         File outfile = Utils.join(Repository.STAGE_DIR, sha1Id);
         secureCopyFile(file, outfile);
+        putBlobMap(sha1Id, name);
+        saveBlobMap();
+    }
+
+    public static void stageForMerge(String name, String shaId) {
+        File srcfile = Utils.join(Repository.COMMITED_DIR, shaId);
+        String sha1Id = Utils.sha1(name);
+        File destfile = Utils.join(Repository.STAGE_DIR, sha1Id);
+        secureCopyFile(srcfile, destfile);
         putBlobMap(sha1Id, name);
         saveBlobMap();
     }

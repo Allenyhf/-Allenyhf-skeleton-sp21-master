@@ -349,7 +349,7 @@ public class Repository {
         String commitSHA1= Branch.readBranchIn(branchName, true).whichCommit();
         mergeCheck(branchName, splitCommitSha1, commitSHA1);
         do_merge(branchName, splitCommitSha1, commitSHA1);
-        commit("Merged" + branchName + "into" + HEAD.pointBranchName);
+        commit("Merged " + branchName + "into " + HEAD.pointBranchName);
     }
 
     private static void do_merge(String branchName, String splitCommitSha1, String commitSHA1) {
@@ -376,9 +376,10 @@ public class Repository {
                     Boolean modifiedSameWay = isFileSame(otherFile, currentFile);
                     if (modifiedSameWay) {
                         /**In the same way: be left unchanged. **/
-                        Blob.add(otherFileName);
+//                        Blob.add(otherFileName);
                     } else {
                         /**In different way: in conflict. **/
+
                     }
                 } else if (!modifiedInCurrent) {
                     /** 1. Modified in other but not in HEAD: be checked out and staged. **/
@@ -388,7 +389,7 @@ public class Repository {
                     Blob.add(fileName);
                 } else if (!modifiedInOther) {
                     /** 2. Modified in HEAD but not in other. Stay as they are. **/
-                    Blob.add(fileName);
+//                    Blob.add(fileName);
                 }
             } else if (!isInCurrent && !isInOther) {
                 /** Both be removed: be left unchanged. **/
@@ -426,7 +427,7 @@ public class Repository {
             String key = entry.getKey();
             if (!split.isFilemapContains(key) && !other.isFilemapContains(key)) {
                 /** 4. Not in split nor other but in HEAD: remain as they are. */
-                Blob.add(key);
+                Blob.stageForMerge(key, entry.getValue());
             } else if (other.isFilemapContains(key)) {
                 /** Both in current and in other, but absent in split. **/
                 String currentFileName = current.getCommitedFileFromFilemap(key);
@@ -441,15 +442,13 @@ public class Repository {
 
         for (Map.Entry<String, String> entry : other.fileMap.entrySet()) {
             String key = entry.getKey();
-            if (split.isFilemapContains(entry.getKey()) || other.isFilemapContains(entry.getKey())) {
-                continue;
-            } else {
+            if (!split.isFilemapContains(entry.getKey()) && !current.isFilemapContains(entry.getKey())) {
                 /** 5. Not in split nor HEAD but in other: be checked out and staged. */
                 String fileId = other.getCommitedFileFromFilemap(key);
                 File dir = Utils.join(Repository.COMMITED_DIR, fileId);
-                File dest = join(CWD, fileId);
+                File dest = join(CWD, key);
                 Utils.secureCopyFile(dir, dest);
-                Blob.add(key);
+                Blob.stageForMerge(key, entry.getValue());
             }
         }
 
