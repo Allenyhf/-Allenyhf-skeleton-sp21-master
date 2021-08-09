@@ -1,9 +1,5 @@
 package gitlet;
 
-// import com.sun.source.tree.Tree;
-
-// import jdk.jshell.execution.Util;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -349,7 +345,7 @@ public class Repository {
         String commitSHA1= Branch.readBranchIn(branchName, true).whichCommit();
         mergeCheck(branchName, splitCommitSha1, commitSHA1);
         do_merge(branchName, splitCommitSha1, commitSHA1);
-        commit("Merged " + branchName + "into " + HEAD.pointBranchName);
+        commit("Merged " + branchName + " into " + HEAD.pointBranchName);
     }
 
     private static void do_merge(String branchName, String splitCommitSha1, String commitSHA1) {
@@ -379,6 +375,11 @@ public class Repository {
 //                        Blob.add(otherFileName);
                     } else {
                         /**In different way: in conflict. **/
+                        File newFile = Utils.join(CWD, fileName);
+                        if (newFile.exists()) {
+                            newFile.delete();
+                        }
+                        newFile.createNewFile();
 
                     }
                 } else if (!modifiedInCurrent) {
@@ -588,7 +589,14 @@ public class Repository {
         Blob.deleteBlobMap();
     }
 
+    /**
+     *
+     * @param branchName
+     * @param splitCommitSha1
+     * @param commitSHA1 SHA1 String of branchName.
+     */
     private static void mergeCheck(String branchName, String splitCommitSha1, String commitSHA1) {
+        /**  If there are staged additions or removals present, print the error message and exit. **/
         if (!Blob.isRemovalEmpty() || !Blob.isBlobMapEmpty()) {
             Repository.abort("You have uncommitted changes.");
         }
@@ -597,10 +605,14 @@ public class Repository {
         if (splitCommitSha1 == null) {
             abort("Cannot find Split Point.");
         }
-        /** If the split point is the same commit as the given branch, then we do nothing. */
-        if (splitCommitSha1 == HEAD.whichCommit()) {
+
+        HEAD.readHEAD();
+        /** If attempting to merge a branch with itself, print the error message. */
+//        System.out.println();
+        if (branchName.equals(HEAD.pointBranchName)) {
             abort("Cannot merge a branch with itself.");
         }
+
         /** If the merge is complete, and the operation ends with the message. */
         if (currentBranchAncestrorSha1Set.contains(branchCommit.getSHA1())) {
             abort("Given branch is an ancestor of the current branch.");
@@ -615,12 +627,6 @@ public class Repository {
     }
 
 
-    private static void mergeCheckout(String branchName) {
-        HEAD.readHEAD();
-        HEAD.switchHEAD(branchName);
-        HEAD.saveHEAD();
-
-    }
 
     /**
      *  Helper function for log(), global-log().
