@@ -42,12 +42,14 @@ public class Branch implements Serializable {
      * @param name the name of Branch
      * @return the Branch
      */
-    public static Branch readBranchIn(String name) {
+    public static Branch readBranchIn(String name, Boolean isMerge) {
         File file = join(Repository.BRANCH_DIR, name);
-        if (!file.exists()) {
+        if (!file.exists() && !isMerge) {
 //            System.out.println("No such branch exists. ");
 //            System.exit(0);
             Repository.abort("No such branch exists.");
+        } else if (!file.exists() && isMerge) {
+            Repository.abort("A branch with that name does not exist.");
         }
         Branch result = readObject(file, Branch.class);
         return result;

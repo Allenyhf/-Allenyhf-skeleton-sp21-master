@@ -43,6 +43,7 @@ public class Repository {
     /** The .gitlet/branch_dir directory. */
     public static final File BRANCH_DIR = join(GITLET_DIR, "branch_dir");
 
+    public static Set<String> currentBranchAncestrorSha1Set = new HashSet<>();
     /**
      *  Create a new Gitlet version-control system in the current directory.
      *
@@ -343,7 +344,114 @@ public class Repository {
         unstageAll();
     }
 
-    public static void merge() {
+    public static void merge(String branchName) {
+        String splitCommitSha1 = findSplitPoint(branchName);
+        String commitSHA1= Branch.readBranchIn(branchName, true).whichCommit();
+        mergeCheck(branchName, splitCommitSha1, commitSHA1);
+        do_merge(branchName, splitCommitSha1, commitSHA1);
+        commit("Merged" + branchName + "into" + HEAD.pointBranchName);
+    }
+
+    private static void do_merge(String branchName, String splitCommitSha1, String commitSHA1) {
+        Commit split = Commit.readCommitFromFile(splitCommitSha1);
+        Commit current = Commit.readCommitFromFile(HEAD.whichCommit());
+        Commit other = Commit.readCommitFromFile(commitSHA1);
+
+        for (Map.Entry<String, String> entry : split.fileMap.entrySet()) {
+            String fileName = entry.getKey();
+            Boolean isInCurrent = current.isFilemapContains(fileName);
+            Boolean isInOther = other.isFilemapContains(fileName);
+            if (isInCurrent && isInOther) {
+                /** **/
+                String otherFileName = other.getCommitedFileFromFilemap(fileName);
+                String currentFileName = current.getCommitedFileFromFilemap(fileName);
+                String splitFileName = split.getCommitedFileFromFilemap(fileName);
+                File otherFile = Utils.join(COMMITED_DIR, otherFileName);
+                File currentFile = Utils.join(COMMITED_DIR, currentFileName);
+                File splitFile = Utils.join(COMMITED_DIR, splitFileName);
+                Boolean modifiedInOther = !isFileSame(splitFile, otherFile);
+                Boolean modifiedInCurrent = !isFileSame(splitFile, currentFile);
+                if (modifiedInCurrent && modifiedInOther) {
+                    /** Modified in other and HEAD. **/
+                    Boolean modifiedSameWay = isFileSame(otherFile, currentFile);
+                    if (modifiedSameWay) {
+                        /**In the same way: be left unchanged. **/
+                        Blob.add(otherFileName);
+                    } else {
+                        /**In different way: in conflict. **/
+                    }
+                } else if (!modifiedInCurrent) {
+                    /** 1. Modified in other but not in HEAD: be checked out and staged. **/
+                    File dir = Utils.join(Repository.COMMITED_DIR, otherFileName);
+                    File dest = join(CWD, fileName);
+                    Utils.secureCopyFile(dir, dest);
+                    Blob.add(fileName);
+                } else if (!modifiedInOther) {
+                    /** 2. Modified in HEAD but not in other. Stay as they are. **/
+                    Blob.add(fileName);
+                }
+            } else if (!isInCurrent && !isInOther) {
+                /** Both be removed: be left unchanged. **/
+
+            } else if (!isInOther) {
+                String currentFileName = current.getCommitedFileFromFilemap(fileName);
+                String splitFileName = split.getCommitedFileFromFilemap(fileName);
+                File currentFile = Utils.join(COMMITED_DIR, currentFileName);
+                File splitFile = Utils.join(COMMITED_DIR, splitFileName);
+                Boolean unModifiedInCurrent = isFileSame(splitFile, currentFile);
+                if (unModifiedInCurrent) {
+                    /** 6. Unmodified in HEAD but not present in other: be removed and untracked. */
+                    File file = Utils.join(CWD, fileName);
+                    file.delete();
+                    Blob.remove(fileName, true);
+                } else {
+                    /** In different way*/
+                }
+            } else if (!isInCurrent) {
+                String otherFileName = other.getCommitedFileFromFilemap(fileName);
+                String splitFileName = split.getCommitedFileFromFilemap(fileName);
+                File otherFile = Utils.join(COMMITED_DIR, otherFileName);
+                File splitFile = Utils.join(COMMITED_DIR, splitFileName);
+                Boolean unModifiedInOther = isFileSame(splitFile, otherFile);
+                if (unModifiedInOther) {
+                    /** 7. Unmodified in other but not present in HEAD: remain absent. */
+                    // absent.
+                } else {
+                    /** In different way. */
+                }
+            }
+        }
+
+        for (Map.Entry<String, String> entry : current.fileMap.entrySet()) {
+            String key = entry.getKey();
+            if (!split.isFilemapContains(key) && !other.isFilemapContains(key)) {
+                /** 4. Not in split nor other but in HEAD: remain as they are. */
+                Blob.add(key);
+            } else if (other.isFilemapContains(key)) {
+                /** Both in current and in other, but absent in split. **/
+                String currentFileName = current.getCommitedFileFromFilemap(key);
+                String otherFileName = split.getCommitedFileFromFilemap(key);
+                File currentFile = Utils.join(COMMITED_DIR, currentFileName);
+                File otherFile = Utils.join(COMMITED_DIR, otherFileName);
+                if (!isFileSame(currentFile, otherFile)) {
+                    /** In different way. **/
+                }
+            }
+        }
+
+        for (Map.Entry<String, String> entry : other.fileMap.entrySet()) {
+            String key = entry.getKey();
+            if (split.isFilemapContains(entry.getKey()) || other.isFilemapContains(entry.getKey())) {
+                continue;
+            } else {
+                /** 5. Not in split nor HEAD but in other: be checked out and staged. */
+                String fileId = other.getCommitedFileFromFilemap(key);
+                File dir = Utils.join(Repository.COMMITED_DIR, fileId);
+                File dest = join(CWD, fileId);
+                Utils.secureCopyFile(dir, dest);
+                Blob.add(key);
+            }
+        }
 
     }
 
@@ -481,6 +589,40 @@ public class Repository {
         Blob.deleteBlobMap();
     }
 
+    private static void mergeCheck(String branchName, String splitCommitSha1, String commitSHA1) {
+        if (!Blob.isRemovalEmpty() || !Blob.isBlobMapEmpty()) {
+            Repository.abort("You have uncommitted changes.");
+        }
+
+        Commit branchCommit = Commit.readCommitFromFile(commitSHA1);
+        if (splitCommitSha1 == null) {
+            abort("Cannot find Split Point.");
+        }
+        /** If the split point is the same commit as the given branch, then we do nothing. */
+        if (splitCommitSha1 == HEAD.whichCommit()) {
+            abort("Cannot merge a branch with itself.");
+        }
+        /** If the merge is complete, and the operation ends with the message. */
+        if (currentBranchAncestrorSha1Set.contains(branchCommit.getSHA1())) {
+            abort("Given branch is an ancestor of the current branch.");
+        }
+        /** If the split point is the current branch, then the effect is to check out
+         * the given branch, and the operation ends after printing the message */
+        if (branchCommit.getSHA1() == HEAD.whichCommit()) {
+            checkout(branchName);
+            abort("Current branch fast-forwarded.");
+        }
+        checkUntracked();
+    }
+
+
+    private static void mergeCheckout(String branchName) {
+        HEAD.readHEAD();
+        HEAD.switchHEAD(branchName);
+        HEAD.saveHEAD();
+
+    }
+
     /**
      *  Helper function for log(), global-log().
      *  Print the commit information.
@@ -540,6 +682,8 @@ public class Repository {
         }
         System.out.println();
     }
+
+
 
     /** Helper function for status().
      *  modified but not staged.
@@ -676,6 +820,50 @@ public class Repository {
         restrictCreateDir(BRANCH_DIR);
     }
 
+    /**
+     * Return SHA1 String of Split point commit.
+     * @param branchName
+     * @return
+     */
+    private static String findSplitPoint(String branchName) {
+
+        Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
+        if (commit == null) {
+            return null;
+        }
+        String parent;
+        while (true) {
+            parent = commit.getParent();
+            currentBranchAncestrorSha1Set.add(commit.getSHA1());
+            if (parent == null) {
+                break;
+            }
+            commit = Commit.readCommitFromFile(parent);
+        }
+
+        Commit commit2 = Commit.readCommitFromFile(Branch.readBranchIn(branchName, true).whichCommit());
+        if (commit2 == null) {
+            return null;
+        }
+        String parent2;
+        while (true) {
+            parent2 = commit2.getParent();
+            if (currentBranchAncestrorSha1Set.contains(commit2.getSHA1())) {
+                break;
+            }
+            if (parent2 == null) {
+                break;
+            }
+            commit2 = Commit.readCommitFromFile(parent2);
+        }
+        if (commit2 == null) {
+            return null;
+        }
+        return commit2.getSHA1();
+    }
+
+
+
     /** Abort with message printed.
      * @param msg message.
      */
@@ -737,6 +925,13 @@ public class Repository {
 
     }
 
+    public static void printSplitPoint() {
+        String sha1 = findSplitPoint("fork");
+        Commit commit = Commit.readCommitFromFile(sha1);
+        System.out.println(commit.getMessage());
+    }
+
+
     public static void main(String[] args) {
         Formatter fmt = new Formatter();
         Calendar cal = Calendar.getInstance();
@@ -763,10 +958,8 @@ public class Repository {
                 printCommitInfo();
                 break;
 
-            case "stage":
-                break;
-
-            case "unstage":
+            case "split":
+                printSplitPoint();
                 break;
 
             default:

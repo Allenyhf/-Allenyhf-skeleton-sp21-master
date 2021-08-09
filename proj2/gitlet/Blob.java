@@ -32,6 +32,7 @@ public class Blob implements Serializable {
         saveBlobMap();
     }
 
+
     /** Add file whose name is "name" to removal. */
     public static void remove(String name, boolean toRemoval) {
         String sha1Id = Utils.sha1(name);
@@ -191,4 +192,14 @@ public class Blob implements Serializable {
         }
         return false;
     }
+
+    /** Check if staging area is empty. */
+    public static boolean isBlobMapEmpty() {
+        blobMap = getTreeMap(blobMap, true);
+        if (blobMap == null || blobMap.isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+
 }

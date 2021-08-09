@@ -35,7 +35,7 @@ public class HEAD implements Serializable {
     /** Make HEAD switch to commit SHA1. */
     public static void switch2commit(String commitId) {
         readHEAD();
-        Branch pointBranch = Branch.readBranchIn(pointBranchName);
+        Branch pointBranch = Branch.readBranchIn(pointBranchName, false);
         pointBranch.resetWhichCommit(commitId);
         saveHEAD();
     }
@@ -55,7 +55,7 @@ public class HEAD implements Serializable {
     /** Return SHA1 String of the commit pointed by HEAD. */
     public static String whichCommit() {
         readHEAD();
-        Branch pointBranch = Branch.readBranchIn(pointBranchName);
+        Branch pointBranch = Branch.readBranchIn(pointBranchName, false);
         return pointBranch.whichCommit();
     }
 

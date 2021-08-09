@@ -124,4 +124,11 @@ public class Commit implements Serializable {
         }
         return this.fileMap.containsKey(key);
     }
+
+    public String getCommitedFileFromFilemap(String key) {
+        if (this.fileMap == null) {
+            return null;
+        }
+        return this.fileMap.get(key);
+    }
 }

@@ -93,7 +93,7 @@ public class Main {
                 break;
 
             case "merge":
-                //
+                Repository.merge(args[1]);
                 break;
 
             default:
