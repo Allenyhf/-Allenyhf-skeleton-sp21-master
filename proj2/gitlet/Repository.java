@@ -623,9 +623,17 @@ public class Repository {
             checkout(branchName);
             abort("Current branch fast-forwarded.");
         }
+
+        checkUncommited();
         checkUntracked();
     }
 
+    private static void checkUncommited() {
+        if (Blob.isBlobMapEmpty() && Blob.isRemovalEmpty()) {
+            return;
+        }
+        System.out.println("You have uncommitted changes.");
+    }
 
 
     /**
