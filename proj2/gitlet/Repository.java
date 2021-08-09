@@ -376,6 +376,7 @@ public class Repository {
                     } else {
                         /**In different way: in conflict. **/
                        overwriteConfilctFile(currentFile, otherFile, fileName);
+                       System.out.println("Encountered a merge conflict.");
                     }
                 } else if (!modifiedInCurrent) {
                     /** 1. Modified in other but not in HEAD: be checked out and staged. **/
@@ -403,6 +404,7 @@ public class Repository {
                 } else {
                     /** In different way*/
                     overwriteConfilctFile(currentFile, null, fileName);
+                    System.out.println("Encountered a merge conflict.");
                 }
             } else if (!isInCurrent) {
                 String otherFileName = other.getCommitedFileFromFilemap(fileName);
@@ -416,6 +418,7 @@ public class Repository {
                 } else {
                     /** In different way. */
                     overwriteConfilctFile(null, otherFile, fileName);
+                    System.out.println("Encountered a merge conflict.");
                 }
             }
         }
@@ -434,6 +437,7 @@ public class Repository {
                 if (!isFileSame(currentFile, otherFile)) {
                     /** In different way. **/
                     overwriteConfilctFile(currentFile, otherFile, key);
+                    System.out.println("Encountered a merge conflict.");
                 }
             }
         }
