@@ -415,7 +415,6 @@ public class Repository {
                 if (unModifiedInOther) {
                     /** 7. Unmodified in other but not present in HEAD: remain absent. */
                     // absent.
-                    ;
                 } else {
                     /** In different way. */
                     overwriteConfilctFile(null, otherFile, fileName);
@@ -623,7 +622,7 @@ public class Repository {
         }
         /** If the split point is the current branch, then the effect is to check out
          * the given branch, and the operation ends after printing the message */
-        if (branchCommit.getSHA1() == HEAD.whichCommit()) {
+        if (splitCommitSha1.equals(HEAD.whichCommit())) {
             checkout(branchName);
             abort("Current branch fast-forwarded.");
         }
@@ -649,16 +648,19 @@ public class Repository {
         } catch (IOException ioexcp) {
             System.out.println(ioexcp.getMessage());
         }
+        String headStr = "<<<<<<< HEAD\n";
+        String sepStr = "=======\n";
+        String endStr = ">>>>>>>\n";
         if (currentFile != null && otherFile != null) {
             byte[] headbyte = readContents(currentFile);
             byte[] otherbyte = readContents(otherFile);
-            Utils.writeContents(newFile, "<<<<<<< HEAD\n", headbyte, "=======\n", otherbyte, ">>>>>>>\n");
+            Utils.writeContents(newFile, headStr, headbyte, sepStr, otherbyte, endStr);
         } else if (currentFile == null) {
             byte[] otherbyte = readContents(otherFile);
-            Utils.writeContents(newFile, "<<<<<<< HEAD\n", "=======\n", otherbyte, ">>>>>>>\n");
+            Utils.writeContents(newFile, headStr, sepStr, otherbyte, endStr);
         } else if (otherFile == null) {
             byte[] headbyte = readContents(currentFile);
-            Utils.writeContents(newFile, "<<<<<<< HEAD\n", headbyte, "=======\n", ">>>>>>>\n");
+            Utils.writeContents(newFile, headStr, headbyte, sepStr, endStr);
         }
         Blob.add(fileName);
     }
