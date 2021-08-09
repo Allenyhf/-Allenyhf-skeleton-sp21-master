@@ -39,7 +39,7 @@ public class Repository {
     /** The .gitlet/branch_dir directory. */
     public static final File BRANCH_DIR = join(GITLET_DIR, "branch_dir");
 
-    public static Set<String> currentBranchAncestrorSha1Set = new HashSet<>();
+    private static Set<String> currentBranchAncestrorSha1Set = new HashSet<>();
     /**
      *  Create a new Gitlet version-control system in the current directory.
      *
@@ -342,17 +342,17 @@ public class Repository {
 
     public static void merge(String branchName) {
         String splitCommitSha1 = findSplitPoint(branchName);
-        String commitSHA1= Branch.readBranchIn(branchName, true).whichCommit();
+        String commitSHA1 = Branch.readBranchIn(branchName, true).whichCommit();
         mergeCheck(branchName, splitCommitSha1, commitSHA1);
-        do_merge(branchName, splitCommitSha1, commitSHA1);
+        doMerge(splitCommitSha1, commitSHA1);
         commit("Merged " + branchName + " into " + HEAD.pointBranchName);
     }
 
-    private static void do_merge(String branchName, String splitCommitSha1, String commitSHA1) {
-        Commit split = Commit.readCommitFromFile(splitCommitSha1);
+    private static void doMerge(String splitSha1, String commitSHA1) {
+        Commit split = Commit.readCommitFromFile(splitSha1);
         Commit current = Commit.readCommitFromFile(HEAD.whichCommit());
         Commit other = Commit.readCommitFromFile(commitSHA1);
-
+        Boolean isConflict = false;
         for (Map.Entry<String, String> entry : split.fileMap.entrySet()) {
             String fileName = entry.getKey();
             Boolean isInCurrent = current.isFilemapContains(fileName);
@@ -376,7 +376,7 @@ public class Repository {
                     } else {
                         /**In different way: in conflict. **/
                        overwriteConfilctFile(currentFile, otherFile, fileName);
-                       System.out.println("Encountered a merge conflict.");
+                       isConflict = true;
                     }
                 } else if (!modifiedInCurrent) {
                     /** 1. Modified in other but not in HEAD: be checked out and staged. **/
@@ -404,7 +404,7 @@ public class Repository {
                 } else {
                     /** In different way*/
                     overwriteConfilctFile(currentFile, null, fileName);
-                    System.out.println("Encountered a merge conflict.");
+                    isConflict = true;
                 }
             } else if (!isInCurrent) {
                 String otherFileName = other.getCommitedFileFromFilemap(fileName);
@@ -415,10 +415,11 @@ public class Repository {
                 if (unModifiedInOther) {
                     /** 7. Unmodified in other but not present in HEAD: remain absent. */
                     // absent.
+                    ;
                 } else {
                     /** In different way. */
                     overwriteConfilctFile(null, otherFile, fileName);
-                    System.out.println("Encountered a merge conflict.");
+                    isConflict = true;
                 }
             }
         }
@@ -428,23 +429,23 @@ public class Repository {
             if (!split.isFilemapContains(key) && !other.isFilemapContains(key)) {
                 /** 4. Not in split nor other but in HEAD: remain as they are. */
                 Blob.stageForMerge(key, entry.getValue());
-            } else if (other.isFilemapContains(key)) {
+            } else if (!split.isFilemapContains(key)) {
                 /** Both in current and in other, but absent in split. **/
                 String currentFileName = current.getCommitedFileFromFilemap(key);
-                String otherFileName = split.getCommitedFileFromFilemap(key);
+                String otherFileName = other.getCommitedFileFromFilemap(key);
                 File currentFile = Utils.join(COMMITED_DIR, currentFileName);
                 File otherFile = Utils.join(COMMITED_DIR, otherFileName);
                 if (!isFileSame(currentFile, otherFile)) {
                     /** In different way. **/
                     overwriteConfilctFile(currentFile, otherFile, key);
-                    System.out.println("Encountered a merge conflict.");
+                    isConflict = true;
                 }
             }
         }
 
         for (Map.Entry<String, String> entry : other.fileMap.entrySet()) {
             String key = entry.getKey();
-            if (!split.isFilemapContains(entry.getKey()) && !current.isFilemapContains(entry.getKey())) {
+            if (!split.isFilemapContains(key) && !current.isFilemapContains(key)) {
                 /** 5. Not in split nor HEAD but in other: be checked out and staged. */
                 String fileId = other.getCommitedFileFromFilemap(key);
                 File dir = Utils.join(Repository.COMMITED_DIR, fileId);
@@ -453,7 +454,9 @@ public class Repository {
                 Blob.stageForMerge(key, entry.getValue());
             }
         }
-
+        if (isConflict) {
+            System.out.println("Encountered a merge conflict.");
+        }
     }
 
 
@@ -597,7 +600,7 @@ public class Repository {
      * @param commitSHA1 SHA1 String of branchName.
      */
     private static void mergeCheck(String branchName, String splitCommitSha1, String commitSHA1) {
-        /**  If there are staged additions or removals present, print the error message and exit. **/
+        /** If there are staged additions or removals exist, print the error message and exit. */
         if (!Blob.isRemovalEmpty() || !Blob.isBlobMapEmpty()) {
             Repository.abort("You have uncommitted changes.");
         }
@@ -649,14 +652,15 @@ public class Repository {
         if (currentFile != null && otherFile != null) {
             byte[] headbyte = readContents(currentFile);
             byte[] otherbyte = readContents(otherFile);
-            Utils.writeContents(newFile, "<<<<<<< HEAD", headbyte, "=======", otherbyte, ">>>>>>>");
-        } else if (currentFile == null){
+            Utils.writeContents(newFile, "<<<<<<< HEAD\n", headbyte, "=======\n", otherbyte, ">>>>>>>\n");
+        } else if (currentFile == null) {
             byte[] otherbyte = readContents(otherFile);
-            Utils.writeContents(newFile, "<<<<<<< HEAD", "=======", otherbyte, ">>>>>>>");
+            Utils.writeContents(newFile, "<<<<<<< HEAD\n", "=======\n", otherbyte, ">>>>>>>\n");
         } else if (otherFile == null) {
             byte[] headbyte = readContents(currentFile);
-            Utils.writeContents(newFile, "<<<<<<< HEAD", headbyte, "=======", ">>>>>>>");
+            Utils.writeContents(newFile, "<<<<<<< HEAD\n", headbyte, "=======\n", ">>>>>>>\n");
         }
+        Blob.add(fileName);
     }
     /**
      *  Helper function for log(), global-log().
@@ -877,7 +881,8 @@ public class Repository {
             commit = Commit.readCommitFromFile(parent);
         }
 
-        Commit commit2 = Commit.readCommitFromFile(Branch.readBranchIn(branchName, true).whichCommit());
+        Commit commit2 = Commit.readCommitFromFile(
+                Branch.readBranchIn(branchName, true).whichCommit());
         if (commit2 == null) {
             return null;
         }
