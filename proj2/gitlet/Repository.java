@@ -626,7 +626,7 @@ public class Repository {
             checkout(branchName);
             abort("Current branch fast-forwarded.");
         }
-
+        checkUnstaged();
         checkUncommited();
 //        checkUntracked();
     }
@@ -637,6 +637,30 @@ public class Repository {
         }
         System.out.println("You have uncommitted changes.");
     }
+
+    private static void checkUnstaged() {
+        List<String> fileList = Utils.plainFilenamesIn(CWD);
+        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
+        Boolean toAbort = false;
+        for (String file : fileList) {
+            Boolean isCommitted = currentCommit.isFilemapContains(file);
+            if (!isCommitted) {
+                Boolean isBlobMapEmpty = Blob.isBlobMapEmpty();
+                if (isBlobMapEmpty) {
+                    toAbort = true;
+                } else {
+                    Boolean isStaged = Blob.isBlobmapContains(file);
+                    if (!isStaged) {
+                        toAbort = true;
+                    }
+                }
+            }
+        }
+        if (toAbort) {
+            abort("There is an untracked file in the way; delete it, or add and commit it first.");
+        }
+    }
+
 
     private static void overwriteConfilctFile(File currentFile, File otherFile, String fileName) {
         File newFile = Utils.join(CWD, fileName);
@@ -832,6 +856,7 @@ public class Repository {
     private static void checkUntracked() {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
+
         for (String file : fileList) {
             if (!currentCommit.isFilemapContains(file)  && !Blob.isBlobmapContains(file)) {
                 abort("There is an untracked file in the way; "
