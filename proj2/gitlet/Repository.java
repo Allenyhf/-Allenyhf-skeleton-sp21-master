@@ -40,51 +40,48 @@ public class Repository {
     public static final File BRANCH_DIR = join(GITLET_DIR, "branch_dir");
 
     private static Set<String> currentBranchAncestrorSha1Set = new HashSet<>();
-    /**
-     *  Create a new Gitlet version-control system in the current directory.
+
+    /** Create a new Gitlet version-control system in the current directory.
      *
      *  Start a initial commit automatically with a message "initial commit",
      *  a single branch "master" which initially points to this inital commit.
-     *  And create a HEAD, which indicates where current branch we are now.
+     *  And create a HEAD, which indicates where current branch are now.
      *
-     *  In addition, save the new created initial Commit, master branch,
+     *  In addition, save the new created initial commit, master branch,
      *  HEAD branch to the file system for future use.
-     *
-     *  The timestamp for this initial commit will be 00:00:00 UTC, Thursday,
-     *  1 January 1970 in whatever format you choose for dates.
      */
     public static void init() {
-        if (Repository.GITLET_DIR.exists()) {
-            Repository.abort("A Gitlet version-control system already exists "
-                    + "in the current directory.");
+        String errMsg = "A Gitlet version-control system already exists in the current directory.";
+        if (GITLET_DIR.exists()) {
+            abort(errMsg);
         } else {
-            Repository.mkalldir();
+            mkalldir();
         }
         Commit initial = new Commit("initial commit", null);
         initial.saveCommit();
         HEAD.initialize(initial.getSHA1());
     }
 
-    /**
-     *  Adds a copy of the file as it currently exists to the staging area.
+    /** Adds a copy of the file as it currently exists to the staging area.
      *
      *  If file named filename doesn't exists, or it is a directory, just exit.
      *
-     *  If the file is identical to the version in the current commit,
-     *  do not stage it to be added, and remove it from the staging area if it is already there.
+     *  If the file is identical to the version in the current commit, do not stage
+     *  it, and remove it from the staging area if already there.
      *
-     *  @param filename
+     *  If the new-added file is already unstaged, just unremove it.
+     *  @param filename name of File to be added (staged).
      */
     public static void add(String filename) {
-        File addedfile = join(CWD, filename);
-        /** File named filename doesn't exists, or it is a directory, just exit. */
-        if (!addedfile.exists()) {
+        File destFile = join(CWD, filename);
+        /** File named filename doesn't exists, or it is a directory, exit. */
+        if (!destFile.exists()) {
             abort("File does not exist.");
-        } else if (addedfile.isDirectory()) {
+        } else if (destFile.isDirectory()) {
             abort(filename + "is a directory.");
         }
 
-        /** If the new-added file is already unstaged, just unremove the file. */
+        /** If the new-added file is already unstaged, just unremove it. */
         if (Blob.isRemovalContains(filename)) {
             Blob.unremove(filename);
             return;
@@ -96,7 +93,7 @@ public class Repository {
 
         /** Check if file staged is the same as the file in CWD. */
         /** If it is, remove it from staging area. */
-        if (commitedFile != null && isFileSame(commitedFile, addedfile)) {
+        if (commitedFile != null && isFileSame(commitedFile, destFile)) {
             String sha1 = Utils.sha1(filename);
             File stagedfile = join(STAGE_DIR, sha1);
             if (stagedfile.exists()) {
@@ -107,29 +104,27 @@ public class Repository {
         Blob.add(filename);
     }
 
-    /**
-     *  Create a new Commit and saves a snapshot of tracked files in the current
+    /** Create a new Commit and saves a snapshot of tracked files in the current
      *  Commit and staging area, so they can be restored later.
      *
      *  By default, each commit’s snapshot of files will be the same as its parent
-     *  commit’s snapshot of files; it will keep versions of files exactly as they
-     *  are, and not update them.
+     *  commit’s snapshot; it'll keep versions of files exactly as they are, and not
+     *  update them.
      *
-     *  A commit will only update the contents of files it is tracking that have
-     *  been staged for addition at the time of commit, in which case the commit
-     *  will now include the version of the file that was staged instead of the
-     *  version it got from its parent.
+     *  A commit will only update the contents of files it's tracking that have been staged
+     *  for addition at the time of commit, in which case the commit will include the
+     *  version of the file that was staged instead of the old version got from its parent.
      *
      *  A commit will save and start tracking any files that were staged for addition
      *  but weren’t tracked by its parent.
      *
-     *  Finally, files tracked in the current commit may be untracked in the new commit
-     *  as a result being staged for removal by the rm command.
-     * @param msg
+     *  Finally, files tracked in current commit may be untracked in new commit as a
+     *  result of being staged for removal by the rm command.
+     * @param msg : message for new commit.
      */
     public static void commit(String msg) {
         if (msg.length() == 0) {
-            Repository.abort("Please enter a commit message.");
+            abort("Please enter a commit message.");
         }
 
         Commit commit = new Commit(msg, HEAD.whichCommit());
@@ -227,8 +222,6 @@ public class Repository {
         if (commitList.isEmpty()) {
             Repository.abort("Not in an initialized Gitlet directory.");
         }
-//        getUntracked();
-//        getModifiedNotStaged();
         printBranch();
         printStagedFiles(nameSet);
         printRemovedFiles(nameSet);
@@ -459,18 +452,6 @@ public class Repository {
         }
     }
 
-
-    /** helper function for add().
-     * Compare file in CWD with file in HEAD
-     * @return
-     */
-//    private static Boolean comparefileCWD2HEAD(String name) {
-//        HEAD = readHEAD();
-//        String SHA1 = HEAD.whichCommit();
-//        Commit currenCommit = Commit.readCommitFromFile(SHA1);
-//
-//        return false;
-//    }
 
     /** helper function for commit().
      *  Move the files in the directory .gitlet/staged_obj/ to the directory .gitlet/commited_obj
@@ -736,7 +717,6 @@ public class Repository {
             nameSet.add(value);
             System.out.println(value);
         }
-
         System.out.println();
     }
 
@@ -861,6 +841,7 @@ public class Repository {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
         Boolean toAbort = false;
+        String errMsg = "There is an untracked file in the way; delete it, or add and commit it first.";
         for (String file : fileList) {
             if (!currentCommit.isFilemapContains(file) && !Blob.isBlobmapContains(file)) {
                 toAbort = true;
@@ -868,13 +849,11 @@ public class Repository {
             }
         }
         if (toAbort) {
-            abort("There is an untracked file in the way; "
-                    + "delete it, or add and commit it first.");
+            abort(errMsg);
         }
     }
 
-    /**
-     */
+    /** Delete all of the files in current working directory. */
     private static void deleteCWDall() {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         File file;
@@ -895,13 +874,11 @@ public class Repository {
         restrictCreateDir(BRANCH_DIR);
     }
 
-    /**
-     * Return SHA1 String of Split point commit.
+    /** Return SHA1 String of Split point commit.
      * @param branchName
      * @return
      */
     private static String findSplitPoint(String branchName) {
-
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
         if (commit == null) {
             return null;
@@ -939,9 +916,8 @@ public class Repository {
     }
 
 
-
     /** Abort with message printed.
-     * @param msg message.
+     * @param msg : message.
      */
     public static void abort(String msg) {
         System.out.println(msg);
@@ -1009,15 +985,9 @@ public class Repository {
 
 
     public static void main(String[] args) {
-        Formatter fmt = new Formatter();
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
-        fmt.format("%ta %tb %td %tr %tY %tz", cal, cal, cal, cal, cal, cal);
-        Date date = cal.getTime();
-        System.out.println(fmt);
-
+        String msg = "select --> blobMap, commit, remove, branch";
         if (args.length == 0) {
-            System.out.println("select --> blobMap, commit, remove, branch");
+            abort(msg);
         }
 
         switch (args[0]) {

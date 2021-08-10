@@ -111,10 +111,8 @@ public class Commit implements Serializable {
             return null;
         }
 
-        String cId = fileMap.get(filename);
-        File dir = Utils.join(Repository.COMMITED_DIR, cId);
-//        File file = readObject(dir, File.class);
-//        return file;
+        String commitId = fileMap.get(filename);
+        File dir = Utils.join(Repository.COMMITED_DIR, commitId);
         return dir;
     }
 
