@@ -334,6 +334,7 @@ public class Repository {
     */
     public static void reset(String commitID) {
         checkUntracked();
+        Commit commit = Commit.readCommitFromFile(commitID);
         deleteCWDall();
         HEAD.switch2commit(commitID);
         overwriteAll(commitID);
@@ -626,8 +627,9 @@ public class Repository {
             checkout(branchName);
             abort("Current branch fast-forwarded.");
         }
-        checkUnstaged();
         checkUncommited();
+        checkUnstaged();
+
 //        checkUntracked();
     }
 
@@ -852,16 +854,19 @@ public class Repository {
     }
 
     /** If there are some files untracked, just abort. */
-
     private static void checkUntracked() {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-
+        Boolean toAbort = false;
         for (String file : fileList) {
-            if (!currentCommit.isFilemapContains(file)  && !Blob.isBlobmapContains(file)) {
-                abort("There is an untracked file in the way; "
-                        + "delete it, or add and commit it first.");
+            if (!currentCommit.isFilemapContains(file) && !Blob.isBlobmapContains(file)) {
+                toAbort = true;
+                break;
             }
+        }
+        if (toAbort) {
+            abort("There is an untracked file in the way; "
+                    + "delete it, or add and commit it first.");
         }
     }
 
