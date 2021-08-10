@@ -134,10 +134,9 @@ public class Repository {
         commit.saveCommit();
     }
 
-    /**
-     * Unstage the file if it is currently staged for addition. If the file is
+    /** Unstage the file if it is currently staged for addition. If the file is
      * tracked in the current commit, stage it for removal and remove the file from
-     * the working directory if the user has not already done so (do not remove it
+     * the working directory if the user has not already done so (don't remove it
      * unless it is tracked in the current commit).
      */
     public static void rm(String filename) {
@@ -149,14 +148,12 @@ public class Repository {
         Blob.remove(filename, iSinCommit);
     }
 
-    /**
-     * Starting at the current head commit, display information about each commit
+    /** Starting at the current head commit, display information about each commit
      * backwards along the commit tree until the initial commit, following the first
      * parent commit links, ignoring any second parents found in merge commits.
      * (In regular Git, this is what you get with git log --first-parent). This set
-     * of commit nodes is called the commit’s history. For every node in this history,
-     * the information it should display is the commit id, the time the commit was made,
-     * and the commit message.
+     * of commit nodes is called the commit’s history. The information it should display
+     * is the commit id, the time the commit was made, and the commit message.
      */
     public static void log() {
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
@@ -171,8 +168,7 @@ public class Repository {
         }
     }
 
-    /**
-     *  Like log, except displays information about all commits ever made. The order of
+    /** Like log, except displays information about all commits ever made. The order of
      *  the commits does not matter. Hint: there is a useful method in gitlet.Utils that
      *  will help you iterate over files within a directory.
      */
@@ -186,8 +182,7 @@ public class Repository {
         }
     }
 
-    /**
-     * Prints out the ids of all commits that have the given commit message, one per line.
+    /** Prints out the ids of all commits that have the given commit message, one per line.
      * If there are multiple such commits, it prints the ids out on separate lines. The
      * commit message is a single operand; to indicate a multiword message, put the operand
      * in quotation marks, as for the commit command below.
@@ -211,8 +206,7 @@ public class Repository {
         }
     }
 
-    /**
-     *  Displays what branches currently exist, and marks the current branch with a *.
+    /** Displays what branches currently exist, and marks the current branch with a *.
      *  Also displays what files have been staged for addition or removal. An example of
      *  the exact format it should follow is as follows.
      */
@@ -229,8 +223,7 @@ public class Repository {
         printUntrackedFiles();
     }
 
-    /**
-     * Takes the version of the file as it exists in the head commit and puts it in the
+    /** Takes the version of the file as it exists in the head commit and puts it in the
      * working directory, overwriting the version of the file that’s already there if there
      * is one. The new version of the file is not staged.
      */
@@ -247,8 +240,7 @@ public class Repository {
     }
 
 
-    /**
-     *  Takes all files in the commit at the head of the given branch, and puts them in the
+    /** Takes all files in the commit at the head of the given branch, and puts them in the
      *  working directory, overwriting the versions of the files that are already there if
      *  they exist.
      *  Also, at the end of this command, the given branch will now be considered the
@@ -276,8 +268,7 @@ public class Repository {
         unstageAll();
     }
 
-    /**
-     * Takes the version of the file as it exists in the commit with the given id, and puts
+    /** Takes the version of the file as it exists in the commit with the given id, and puts
      * it in the working directory, overwriting the version of the file that’s already there
      * if there is one. The new version of the file is not staged.
      */
@@ -292,8 +283,7 @@ public class Repository {
         // otherwise files scheduled for addition or removal remain so.
     }
 
-    /**
-     * Creates a new branch with the given name, and points it at the current head commit.
+    /** Creates a new branch with the given name, and points it at the current head commit.
      * A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit
      * node. This command does NOT immediately switch to the newly created branch (just as
      * in real Git). Before you ever call branch, your code should be running with a default
@@ -309,8 +299,7 @@ public class Repository {
 //        HEAD.switchHEAD(branchName);
     }
 
-    /**
-     *  Deletes the branch with the given name. This only means to delete the pointer associated
+    /** Deletes the branch with the given name. This only means to delete the pointer associated
      *  with the branch; it does not mean to delete all commits that were created under the branch,
      *  or anything like that.
      */
@@ -318,8 +307,7 @@ public class Repository {
         Branch.deleteBranch(branchName);
     }
 
-    /**
-     *  Checks out all the files tracked by the given commit. Removes tracked files that are not
+    /** Checks out all the files tracked by the given commit. Removes tracked files that are not
      *  present in that commit. Also moves the current branch’s head to that commit node. See the
      *  intro for an example of what happens to the head pointer after using reset. The [commit id]
      *  may be abbreviated as for checkout. The staging area is cleared. The command is essentially
@@ -334,6 +322,9 @@ public class Repository {
         unstageAll();
     }
 
+    /** Driver method for merge.
+     * @param branchName
+     */
     public static void merge(String branchName) {
         String splitCommitSha1 = findSplitPoint(branchName);
         String commitSHA1 = Branch.readBranchIn(branchName, true).whichCommit();
@@ -342,10 +333,26 @@ public class Repository {
         commit("Merged " + branchName + " into " + HEAD.pointBranchName + ".");
     }
 
+    /** Return File of fileName in commit.
+     * @param commit : Commit.
+     * @param fileName : name of file.
+     * @return File of fileName in commit.
+     */
+    private static File getFilefromCommit(Commit commit, String fileName) {
+        String id = commit.getCommitedFileFromFilemap(fileName);
+        return Utils.join(COMMITED_DIR, id);
+    }
+
+    /** Method for doing merge actually.
+     * @param splitSha1
+     * @param commitSHA1
+     */
     private static void doMerge(String splitSha1, String commitSHA1) {
+        /** Read the three commit in. */
         Commit split = Commit.readCommitFromFile(splitSha1);
         Commit current = Commit.readCommitFromFile(HEAD.whichCommit());
         Commit other = Commit.readCommitFromFile(commitSHA1);
+
         Boolean isConflict = false;
         for (Map.Entry<String, String> entry : split.fileMap.entrySet()) {
             String fileName = entry.getKey();
@@ -353,42 +360,35 @@ public class Repository {
             Boolean isInOther = other.isFilemapContains(fileName);
             if (isInCurrent && isInOther) {
                 /** **/
-                String otherFileName = other.getCommitedFileFromFilemap(fileName);
-                String currentFileName = current.getCommitedFileFromFilemap(fileName);
-                String splitFileName = split.getCommitedFileFromFilemap(fileName);
-                File otherFile = Utils.join(COMMITED_DIR, otherFileName);
-                File currentFile = Utils.join(COMMITED_DIR, currentFileName);
-                File splitFile = Utils.join(COMMITED_DIR, splitFileName);
+                File otherFile = getFilefromCommit(other, fileName);
+                File currentFile = getFilefromCommit(current, fileName);
+                File splitFile = getFilefromCommit(split, fileName);
                 Boolean modifiedInOther = !isFileSame(splitFile, otherFile);
                 Boolean modifiedInCurrent = !isFileSame(splitFile, currentFile);
                 if (modifiedInCurrent && modifiedInOther) {
                     /** Modified in other and HEAD. **/
                     Boolean modifiedSameWay = isFileSame(otherFile, currentFile);
-                    if (modifiedSameWay) {
-                        /**In the same way: be left unchanged. **/
-//                        Blob.add(otherFileName);
-                    } else {
+                    if (!modifiedSameWay) {
                         /**In different way: in conflict. **/
                        overwriteConfilctFile(currentFile, otherFile, fileName);
                        isConflict = true;
                     }
+                    /** ELSE : in the same way, be left unchanged. */
                 } else if (!modifiedInCurrent) {
                     /** 1. Modified in other but not in HEAD: be checked out and staged. **/
+                    String otherFileName = other.getCommitedFileFromFilemap(fileName);
                     File dir = Utils.join(Repository.COMMITED_DIR, otherFileName);
                     File dest = join(CWD, fileName);
                     Utils.secureCopyFile(dir, dest);
                     Blob.add(fileName);
                 } else if (!modifiedInOther) {
                     /** 2. Modified in HEAD but not in other. Stay as they are. **/
-//                    Blob.add(fileName);
                 }
             } else if (!isInCurrent && !isInOther) {
                 /** Both be removed: be left unchanged. **/
             } else if (!isInOther) {
-                String currentFileName = current.getCommitedFileFromFilemap(fileName);
-                String splitFileName = split.getCommitedFileFromFilemap(fileName);
-                File currentFile = Utils.join(COMMITED_DIR, currentFileName);
-                File splitFile = Utils.join(COMMITED_DIR, splitFileName);
+                File currentFile = getFilefromCommit(current, fileName);
+                File splitFile = getFilefromCommit(split, fileName);
                 Boolean unModifiedInCurrent = isFileSame(splitFile, currentFile);
                 if (unModifiedInCurrent) {
                     /** 6. Unmodified in HEAD but not present in other: be removed and untracked. */
@@ -401,19 +401,15 @@ public class Repository {
                     isConflict = true;
                 }
             } else if (!isInCurrent) {
-                String otherFileName = other.getCommitedFileFromFilemap(fileName);
-                String splitFileName = split.getCommitedFileFromFilemap(fileName);
-                File otherFile = Utils.join(COMMITED_DIR, otherFileName);
-                File splitFile = Utils.join(COMMITED_DIR, splitFileName);
+                File otherFile = getFilefromCommit(other, fileName);
+                File splitFile = getFilefromCommit(split, fileName);
                 Boolean unModifiedInOther = isFileSame(splitFile, otherFile);
-                if (unModifiedInOther) {
-                    /** 7. Unmodified in other but not present in HEAD: remain absent. */
-                    // absent.
-                } else {
+                if (!unModifiedInOther) {
                     /** In different way. */
                     overwriteConfilctFile(null, otherFile, fileName);
                     isConflict = true;
                 }
+                /** ELSE: 7. Unmodified in other but not present in HEAD: remain absent. */
             }
         }
 
@@ -424,10 +420,8 @@ public class Repository {
                 Blob.stageForMerge(key, entry.getValue());
             } else if (!split.isFilemapContains(key)) {
                 /** Both in current and in other, but absent in split. **/
-                String currentFileName = current.getCommitedFileFromFilemap(key);
-                String otherFileName = other.getCommitedFileFromFilemap(key);
-                File currentFile = Utils.join(COMMITED_DIR, currentFileName);
-                File otherFile = Utils.join(COMMITED_DIR, otherFileName);
+                File otherFile = getFilefromCommit(other, key);
+                File currentFile = getFilefromCommit(current, key);
                 if (!isFileSame(currentFile, otherFile)) {
                     /** In different way. **/
                     overwriteConfilctFile(currentFile, otherFile, key);
@@ -512,8 +506,7 @@ public class Repository {
         }
     }
 
-    /**
-     *   Copy snapshots of current Commit to the new Commit commit.
+    /**  Copy snapshots of current Commit to the new Commit commit.
      *   If no snapshots, namely fileMap of current Commit is empty,
      *   just create a new TreeMap.
      */
@@ -526,8 +519,7 @@ public class Repository {
         }
     }
 
-    /**
-     *  Check current Commit for file to unstage from it.
+    /** Check current Commit for file to unstage from it.
      *  If the file exists in the Commit, move it from .gitlet/commited_obj to .gitlet/unstaged_obj.
      *  --And do not remove the key-value pair from fileMap.--
      *  If it is in the Commit, remove the file from CWD.
@@ -587,13 +579,11 @@ public class Repository {
         }
 
         Commit branchCommit = Commit.readCommitFromFile(commitSHA1);
-        if (splitCommitSha1 == null) {
-            abort("Cannot find Split Point.");
-        }
-
+//        if (splitCommitSha1 == null) {
+//            abort("Cannot find Split Point.");
+//        }
         HEAD.readHEAD();
         /** If attempting to merge a branch with itself, print the error message. */
-//        System.out.println();
         if (branchName.equals(HEAD.pointBranchName)) {
             abort("Cannot merge a branch with itself.");
         }
@@ -610,8 +600,6 @@ public class Repository {
         }
         checkUncommited();
         checkUnstaged();
-
-//        checkUntracked();
     }
 
     private static void checkUncommited() {
@@ -624,9 +612,11 @@ public class Repository {
         }
     }
 
+    /** Check if there exists files unstaged. If exists, abort with error message. */
     private static void checkUnstaged() {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
+        String errMsg = "There is an untracked file in the way; delete it, or add and commit it first.";
         Boolean toAbort = false;
         for (String file : fileList) {
             Boolean isCommitted = currentCommit.isFilemapContains(file);
@@ -643,7 +633,7 @@ public class Repository {
             }
         }
         if (toAbort) {
-            abort("There is an untracked file in the way; delete it, or add and commit it first.");
+            abort(errMsg);
         }
     }
 
@@ -727,7 +717,6 @@ public class Repository {
         String key;
         for (Map.Entry<String, String> entry : removal.entrySet()) {
             key = entry.getKey();
-//            nameSet.add(key);
             System.out.println(key);
         }
         System.out.println();
@@ -880,9 +869,9 @@ public class Repository {
      */
     private static String findSplitPoint(String branchName) {
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
-        if (commit == null) {
-            return null;
-        }
+
+        /** Add ancestor of the commit indicated by HEAD into Set. **/
+        /** O(n). n : length from initial commit to the commit indicated by HEAD. */
         String parent;
         while (true) {
             parent = commit.getParent();
@@ -892,25 +881,33 @@ public class Repository {
             }
             commit = Commit.readCommitFromFile(parent);
         }
-
-        Commit commit2 = Commit.readCommitFromFile(
-                Branch.readBranchIn(branchName, true).whichCommit());
+        /** Read the commit indicated by branchName in. **/
+        String id = Branch.readBranchIn(branchName, true).whichCommit();
+        Commit commit2 = Commit.readCommitFromFile(id);
         if (commit2 == null) {
             return null;
         }
+
+        /** Travel from the commit indicated by branchName back,
+         *  util we came across the latest common ancestor of these two commit. */
+        /** O(n). n : length from intial commit to the commit indicated by branchName. */
         String parent2;
         while (true) {
             parent2 = commit2.getParent();
+            /** The latest common ancestor of these two commit. */
             if (currentBranchAncestrorSha1Set.contains(commit2.getSHA1())) {
+                /** Expected time complexity of the op contains in Hashset if O(1). **/
                 break;
             }
+            /** In case of bad commit structure. */
             if (parent2 == null) {
                 break;
             }
             commit2 = Commit.readCommitFromFile(parent2);
         }
-        if (commit2 == null) {
-            return null;
+
+        if (parent2 == null) {
+            abort("Error when finding split point.");
         }
         return commit2.getSHA1();
     }
@@ -924,8 +921,7 @@ public class Repository {
         System.exit(0);
     }
 
-    /**
-     *  Debug helper function.
+    /** Debug helper function.
      *  Print fileMap of the Commit pointed by HEAD.
      */
     private static void testCommit() {
@@ -938,9 +934,7 @@ public class Repository {
 
     }
 
-    /**
-     *  Debug helper function.
-     */
+    /** Debug helper function. */
     public static void testBlob() {
         Blob.blobMap = Blob.getTreeMap(Blob.blobMap, false);
         for (Map.Entry<String, String> entry : Blob.blobMap.entrySet()) {

@@ -11,8 +11,7 @@ public class Main {
     public static void main(String[] args) {
         // if args is empty, print and exit
         if (args.length == 0) {
-            System.out.println("Please enter a command.");
-            System.exit(0);
+            Repository.abort("Please enter a command.");
         }
 
         String firstArg = args[0];
@@ -28,8 +27,7 @@ public class Main {
             case "add":
                 // handle the `add [filename]` command
                 if (args.length <= 1) {
-                    System.out.println("Please specify a file to be staged.");
-                    System.exit(0);
+                    Repository.abort("Please specify a file to be staged.");
                 } else {
                     Repository.add(args[1]);
                 }
@@ -37,16 +35,14 @@ public class Main {
 
             case "commit":
                 if (args.length < 2) {
-                    System.out.println("Please enter a commit message.");
-                    System.exit(0);
+                    Repository.abort("Please enter a commit message.");
                 }
                 Repository.commit(args[1]);
                 break;
 
             case "rm":
                 if (args.length < 2) {
-                    System.out.println("Please specify a file to be unstaged.");
-                    System.exit(0);
+                    Repository.abort("Please specify a file to be unstaged.");
                 }
                 Repository.rm(args[1]);
                 break;

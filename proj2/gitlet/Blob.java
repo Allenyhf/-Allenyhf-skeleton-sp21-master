@@ -1,7 +1,5 @@
 package gitlet;
 
-//import jdk.jshell.execution.Util;
-
 import java.io.File;
 import java.io.Serializable;
 import java.util.List;
@@ -176,17 +174,6 @@ public class Blob implements Serializable {
         return false;
     }
 
-    public static boolean isCWDallInblobMap() {
-        List<String> fileList = Utils.plainFilenamesIn(Repository.CWD);
-        blobMap = getTreeMap(blobMap, false);
-        boolean flag = true;
-        for (String file : fileList) {
-            if (!blobMap.containsKey(file)) {
-                flag = false;
-            }
-        }
-        return flag;
-    }
 
     /** Unremove the file "name" **/
     public static void unremove(String name) {

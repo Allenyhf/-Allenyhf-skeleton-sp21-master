@@ -5,7 +5,6 @@ import java.io.Serializable;
 import java.io.File;
 import java.util.*;
 import static gitlet.Utils.*;
-// import java.time.*;
 
 /** Represents a gitlet commit object.
  *  It's a good idea to give a description here of what else this Class
@@ -33,8 +32,7 @@ public class Commit implements Serializable {
     /* TreeMap for file from name (such as hello.txt) to id (namely sha1Id) in File System */
     protected TreeMap<String, String> fileMap;
 
-    /**
-     *  Construtor with two argument
+    /** Construtor with two argument
      * @param msg
      * @param p
      */
@@ -50,7 +48,6 @@ public class Commit implements Serializable {
         } else {
             dateString = Utils.getFormattedTime();
         }
-//        System.out.println(dateString);
         sha1Id = Utils.sha1(message + parent + dateString);
         dateString = "Thu Nov 9 17:01:33 2017 -0800";
     }
