@@ -346,7 +346,7 @@ public class Repository {
         String commitSHA1 = Branch.readBranchIn(branchName, true).whichCommit();
         mergeCheck(branchName, splitCommitSha1, commitSHA1);
         doMerge(splitCommitSha1, commitSHA1);
-        commit("Merged " + branchName + " into " + HEAD.pointBranchName);
+        commit("Merged " + branchName + " into " + HEAD.pointBranchName + ".");
     }
 
     private static void doMerge(String splitSha1, String commitSHA1) {
@@ -634,10 +634,13 @@ public class Repository {
     }
 
     private static void checkUncommited() {
-        if (Blob.isBlobMapEmpty() && Blob.isRemovalEmpty()) {
-            return;
+//        if (!Blob.isBlobMapEmpty() || !Blob.isRemovalEmpty()) {
+//            abort("You have uncommitted changes.");
+//        }
+        List<String> fileList = Utils.plainFilenamesIn(STAGE_DIR);
+        if (!fileList.isEmpty()) {
+            abort("You have uncommitted changes.");
         }
-        System.out.println("You have uncommitted changes.");
     }
 
     private static void checkUnstaged() {
