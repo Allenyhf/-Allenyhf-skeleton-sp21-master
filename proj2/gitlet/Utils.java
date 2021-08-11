@@ -276,4 +276,12 @@ class Utils {
         return fmt.toString();
     }
 
+    /** Abort with message printed.
+     * @param msg : message.
+     */
+    public static void abort(String msg) {
+        System.out.println(msg);
+        System.exit(0);
+    }
+
 }

@@ -13,47 +13,42 @@ import static gitlet.Utils.*;
  *  @author Hongfa You
  */
 public class Commit implements Serializable {
-    /**
-     * add instance variables here.
-     *
-     * List all instance variables of the Commit class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided one example for `message`.
-     */
 
     /** The message of this Commit. */
     private String message;
     /** Date of this Commit was created. */
     private String dateString;
-    /** Parent of this Commit, using SHA1 to indicate **/
-    private String parent;
+    /** First parent of this Commit, using SHA1 to indicate **/
+    private String firstparent;
+    /** Second parent of this Commit, using SHA1 to indicate **/
+    private String secondparent;
     /** SHA1 identifier for this Commit. */
     private String sha1Id;
     /* TreeMap for file from name (such as hello.txt) to id (namely sha1Id) in File System */
     protected TreeMap<String, String> fileMap;
 
     /** Construtor with two argument
-     * @param msg
-     * @param p
+     * @param msg : commit messge.
+     * @param fp : first parent.
+     * @param sp : second parent.
      */
-    public Commit(String msg, String p) {
+    public Commit(String msg, String fp, String sp) {
         message = msg;
-        parent = p;
-
+        firstparent = fp;
+        secondparent = sp;
         Calendar calendar = Calendar.getInstance();
-        if (p == null) {
+        if (fp == null) {
             // This is the "initial Commit"
             dateString = Utils.getFormattedTime();
             fileMap = null;
         } else {
             dateString = Utils.getFormattedTime();
         }
-        sha1Id = Utils.sha1(message + parent + dateString);
+        sha1Id = Utils.sha1(message + firstparent + dateString);
         dateString = "Thu Nov 9 17:01:33 2017 -0800";
     }
 
-    /**
-     * Read Commit from file system by SHA1 of the Commit.
+    /** Read Commit from file system by SHA1 of the Commit.
      * @param commitId indicates which Commit, it's actual name of the Commit in File System
      * @return the Commit read in
      */
@@ -67,9 +62,7 @@ public class Commit implements Serializable {
         return commit;
     }
 
-    /**
-     * Save this Commit to a file in File System for future use.
-     */
+    /** Save this Commit to a file in File System for future use. */
     public void saveCommit() {
         File outfile = Utils.join(Repository.INFOCOMMIT_DIR, sha1Id);
         try {
@@ -88,18 +81,20 @@ public class Commit implements Serializable {
     public String getMessage() {
         return message;
     }
-    /** Return parent of this Commit, which is indicated by SHA1 String **/
-    public String getParent() {
-        return parent;
+    /** Return first parent of this Commit, which is indicated by SHA1 String **/
+    public String getfirstParent() {
+        return firstparent;
     }
-
+    /** Return second parent of this Commit, which is indicated by SHA1 String **/
+    public String getsecondParent() {
+        return secondparent;
+    }
     /** Return SHA1 String of this Commit */
     public String getSHA1() {
         return sha1Id;
     }
 
-    /**
-     *  Load the file specified by filename of this Commit into file.
+    /** Load the file specified by filename of this Commit into file.
      *  If not exists, just return null.
      **/
     public File loadfile(String filename) {
@@ -113,6 +108,12 @@ public class Commit implements Serializable {
         return dir;
     }
 
+    /** Return if filemap is empty or not. */
+    public boolean isFilemapEmpty() {
+        return fileMap == null;
+    }
+
+    /** Return if fileMap contains key. */
     public boolean isFilemapContains(String key) {
         if (this.fileMap == null) {
             return false;
@@ -120,10 +121,34 @@ public class Commit implements Serializable {
         return this.fileMap.containsKey(key);
     }
 
-    public String getCommitedFileFromFilemap(String key) {
+    /** Return sha1 String of file named key. */
+    protected String getCommitedFileFromFilemap(String key) {
         if (this.fileMap == null) {
             return null;
         }
         return this.fileMap.get(key);
+    }
+
+    /** Return File of fileName in commit.
+     * @param fileName : name of file.
+     * @return File of fileName in commit.
+     */
+    protected File getFilefromCommit(String fileName, String errMsg) {
+        String id = this.getCommitedFileFromFilemap(fileName);
+        if (id == null) {
+            Utils.abort(errMsg);
+        }
+        return Utils.join(Repository.COMMITED_DIR, id);
+    }
+
+    /** Helper function for log(), global-log().
+     *  Print the commit information.
+     */
+    protected void printCommitInfo() {
+        System.out.println("===");
+        System.out.println("commit " + this.getSHA1());
+        System.out.println("Date: " + this.getDate());
+        System.out.println(this.getMessage());
+        System.out.println();
     }
 }

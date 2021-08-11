@@ -1,6 +1,5 @@
 package gitlet;
 
-// import javax.swing.border.MatteBorder;
 import java.io.File;
 import java.io.Serializable;
 import java.util.List;
@@ -45,11 +44,9 @@ public class Branch implements Serializable {
     public static Branch readBranchIn(String name, Boolean isMerge) {
         File file = join(Repository.BRANCH_DIR, name);
         if (!file.exists() && !isMerge) {
-//            System.out.println("No such branch exists. ");
-//            System.exit(0);
-            Repository.abort("No such branch exists.");
+            Utils.abort("No such branch exists.");
         } else if (!file.exists() && isMerge) {
-            Repository.abort("A branch with that name does not exist.");
+            Utils.abort("A branch with that name does not exist.");
         }
         Branch result = readObject(file, Branch.class);
         return result;
@@ -86,17 +83,17 @@ public class Branch implements Serializable {
      *  If it doesn't exists, just abort.
      * @param branchName
      */
-    public static void deleteBranch(String branchName) {
+    protected static void deleteBranch(String branchName) {
         HEAD.readHEAD();
-        if (branchName.equals(HEAD.pointBranchName)) { //do not use ==
-            Repository.abort("Cannot remove the current branch.");
+        if (branchName.equals(HEAD.getPointBranch())) { //do not use ==
+            Utils.abort("Cannot remove the current branch.");
         }
         List<String> branchList = Utils.plainFilenamesIn(Repository.BRANCH_DIR);
         if (branchList.contains(branchName)) {
             File file = Utils.join(Repository.BRANCH_DIR, branchName);
             file.delete();
         } else {
-            Repository.abort("A branch with that name does not exist.");
+            Utils.abort("A branch with that name does not exist.");
         }
     }
 

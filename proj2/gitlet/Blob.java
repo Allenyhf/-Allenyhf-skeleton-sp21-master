@@ -2,7 +2,6 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.List;
 import java.util.TreeMap;
 
 import static gitlet.Utils.*;
@@ -13,7 +12,6 @@ import static gitlet.Utils.*;
  */
 
 public class Blob implements Serializable {
-
     /** Map from filename to SHA1 for each added file */
     /* TreeMap for staged. */
     protected static TreeMap<String, String> blobMap;
@@ -40,7 +38,6 @@ public class Blob implements Serializable {
         putBlobMap(sha1Id, name);
         saveBlobMap();
     }
-
 
     /** Add file whose name is "name" to removal. */
     public static void remove(String name, boolean toRemoval) {
@@ -174,14 +171,6 @@ public class Blob implements Serializable {
         return false;
     }
 
-
-    /** Unremove the file "name" **/
-    public static void unremove(String name) {
-        removal = getTreeMap(removal, true);
-        removal.remove(name);
-        saveremoval();
-    }
-
     /** Check if unstage area is empty. */
     public static boolean isRemovalEmpty() {
         removal = getTreeMap(removal, true);
@@ -200,4 +189,10 @@ public class Blob implements Serializable {
         return false;
     }
 
+    /** Unremove the file "name" **/
+    public static void unremove(String name) {
+        removal = getTreeMap(removal, true);
+        removal.remove(name);
+        saveremoval();
+    }
 }

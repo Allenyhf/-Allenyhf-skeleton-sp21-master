@@ -4,14 +4,13 @@ package gitlet;
  *  @author Hongfa You
  */
 public class Main {
-
     /** Usage: java gitlet.Main ARGS, where ARGS contains
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
     public static void main(String[] args) {
         // if args is empty, print and exit
         if (args.length == 0) {
-            Repository.abort("Please enter a command.");
+            Utils.abort("Please enter a command.");
         }
 
         String firstArg = args[0];
@@ -27,7 +26,7 @@ public class Main {
             case "add":
                 // handle the `add [filename]` command
                 if (args.length <= 1) {
-                    Repository.abort("Please specify a file to be staged.");
+                    Utils.abort("Please specify a file to be staged.");
                 } else {
                     Repository.add(args[1]);
                 }
@@ -35,14 +34,14 @@ public class Main {
 
             case "commit":
                 if (args.length < 2) {
-                    Repository.abort("Please enter a commit message.");
+                    Utils.abort("Please enter a commit message.");
                 }
-                Repository.commit(args[1]);
+                Repository.commit(args[1], null);
                 break;
 
             case "rm":
                 if (args.length < 2) {
-                    Repository.abort("Please specify a file to be unstaged.");
+                    Utils.abort("Please specify a file to be unstaged.");
                 }
                 Repository.rm(args[1]);
                 break;
@@ -93,7 +92,7 @@ public class Main {
                 break;
 
             default:
-                Repository.abort("No command with that name exists.");
+                Utils.abort("No command with that name exists.");
                 break;
         }
     }

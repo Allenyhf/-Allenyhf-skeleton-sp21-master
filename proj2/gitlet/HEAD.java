@@ -8,13 +8,8 @@ import static gitlet.Utils.writeObject;
 
 public class HEAD implements Serializable {
 //    private String pointBranch; // a String indicates the Commit HEAD should point to
-    protected static String pointBranchName;
+    private static String pointBranchName;
 
-//    public HEAD(String SHA1) {
-//        pointBranchName = "master";
-//        Branch pointBranch = new Branch("master", SHA1);
-//        pointBranch.saveBranch();
-//    }
     public static void initialize(String commitId) {
         pointBranchName = "master";
         Branch master = new Branch(pointBranchName, commitId);
@@ -22,8 +17,7 @@ public class HEAD implements Serializable {
         saveHEAD();
     }
 
-    /**
-     *  Make HEAD switch to branchName.
+    /** Make HEAD switch to branchName.
      * @param branchName
      */
     public static void switchHEAD(String branchName) {
@@ -59,4 +53,11 @@ public class HEAD implements Serializable {
         return pointBranch.whichCommit();
     }
 
+    public static String getPointBranch() {
+        return pointBranchName;
+    }
+
+    public static void setPointBranch(String name) {
+        pointBranchName = name;
+    }
 }

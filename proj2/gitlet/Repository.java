@@ -8,7 +8,6 @@ import java.util.*;
 
 import static gitlet.Utils.*;
 
-
 /** Represents a gitlet repository.
  *  It's a good idea to give a description here of what else this Class
  *  does at a high level.
@@ -16,12 +15,6 @@ import static gitlet.Utils.*;
  *  @author Hongfa You
  */
 public class Repository {
-    /**
-     * List all instance variables of the Repository class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided two examples for you.
-     */
-
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
@@ -39,8 +32,6 @@ public class Repository {
     /** The .gitlet/branch_dir directory. */
     public static final File BRANCH_DIR = join(GITLET_DIR, "branch_dir");
 
-    private static Set<String> currentBranchAncestrorSha1Set = new HashSet<>();
-
     /** Create a new Gitlet version-control system in the current directory.
      *
      *  Start a initial commit automatically with a message "initial commit",
@@ -57,7 +48,7 @@ public class Repository {
         } else {
             mkalldir();
         }
-        Commit initial = new Commit("initial commit", null);
+        Commit initial = new Commit("initial commit", null, null);
         initial.saveCommit();
         HEAD.initialize(initial.getSHA1());
     }
@@ -114,20 +105,20 @@ public class Repository {
      *  A commit will only update the contents of files it's tracking that have been staged
      *  for addition at the time of commit, in which case the commit will include the
      *  version of the file that was staged instead of the old version got from its parent.
-     *
      *  A commit will save and start tracking any files that were staged for addition
      *  but weren’t tracked by its parent.
      *
      *  Finally, files tracked in current commit may be untracked in new commit as a
      *  result of being staged for removal by the rm command.
      * @param msg : message for new commit.
+     * @param sp : second parent.
      */
-    public static void commit(String msg) {
+    public static void commit(String msg, String sp) {
         if (msg.length() == 0) {
             abort("Please enter a commit message.");
         }
 
-        Commit commit = new Commit(msg, HEAD.whichCommit());
+        Commit commit = new Commit(msg, HEAD.whichCommit(), sp);
         copySnapshot(commit);
         staged2Commited(commit);
         HEAD.switch2commit(commit.getSHA1());
@@ -159,11 +150,9 @@ public class Repository {
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
         String parent;
         while (true) {
-            parent = commit.getParent();
-            printCommitInfo(commit);
-            if (parent == null) {
-                break;
-            }
+            parent = commit.getfirstParent();
+            commit.printCommitInfo();
+            if (parent == null) { break; }
             commit = Commit.readCommitFromFile(parent);
         }
     }
@@ -178,7 +167,7 @@ public class Repository {
 
         for (String filename: fileList) {
             commit = Commit.readCommitFromFile(filename);
-            printCommitInfo(commit);
+            commit.printCommitInfo();
         }
     }
 
@@ -211,16 +200,15 @@ public class Repository {
      *  the exact format it should follow is as follows.
      */
     public static void status() {
-        Set<String> nameSet = new HashSet<>();
         List<String> commitList = Utils.plainFilenamesIn(Repository.INFOCOMMIT_DIR);
         if (commitList.isEmpty()) {
-            Repository.abort("Not in an initialized Gitlet directory.");
+            Utils.abort("Not in an initialized Gitlet directory.");
         }
-        printBranch();
-        printStagedFiles(nameSet);
-        printRemovedFiles(nameSet);
-        printModifications();
-        printUntrackedFiles();
+        LogHelper.printBranch();
+        LogHelper.printStagedFiles();
+        LogHelper.printRemovedFiles();
+        LogHelper.printModifications();
+        LogHelper.printUntrackedFiles();
     }
 
     /** Takes the version of the file as it exists in the head commit and puts it in the
@@ -230,7 +218,7 @@ public class Repository {
     public static void checkout(String operand, String filename) {
         // checkout -- [file name]
         if (!operand.equals("--")) {
-            Repository.abort("Incorrect operands.");
+            Utils.abort("Incorrect operands.");
         }
         String commitId = HEAD.whichCommit();
         overwriteOne(commitId, filename);
@@ -252,7 +240,7 @@ public class Repository {
     public static void checkout(String branchName) {
         // checkout [branch name]
         HEAD.readHEAD();
-        if (branchName.equals(HEAD.pointBranchName)) {
+        if (branchName.equals(HEAD.getPointBranch())) {
             abort("No need to checkout the current branch.");
         }
         List<String> branchList = Utils.plainFilenamesIn(BRANCH_DIR);
@@ -262,7 +250,6 @@ public class Repository {
 
         checkUntracked();
         HEAD.switchHEAD(branchName);
-        HEAD.saveHEAD();
         deleteCWDall();
         overwriteAll(HEAD.whichCommit());
         unstageAll();
@@ -271,16 +258,16 @@ public class Repository {
     /** Takes the version of the file as it exists in the commit with the given id, and puts
      * it in the working directory, overwriting the version of the file that’s already there
      * if there is one. The new version of the file is not staged.
+     * checkout [commit id] -- [file name]
      */
     public static void checkout(String commitName, String operand, String fileName) {
-        // checkout [commit id] -- [file name]
         if (!operand.equals("--")) {
-            Repository.abort("Incorrect operands.");
+            Utils.abort("Incorrect operands.");
         }
         overwriteOne(commitName, fileName);
         // unstageOne(fileName);
-        // Only version 3 (checkout of a full branch) modifies the staging area:
-        // otherwise files scheduled for addition or removal remain so.
+        /* Only version 3 (checkout of a full branch) modifies the staging area:
+        * otherwise files scheduled for addition or removal remain so. */
     }
 
     /** Creates a new branch with the given name, and points it at the current head commit.
@@ -296,7 +283,6 @@ public class Repository {
 
         Branch newone = new Branch(branchName, HEAD.whichCommit());
         newone.saveBranch();
-//        HEAD.switchHEAD(branchName);
     }
 
     /** Deletes the branch with the given name. This only means to delete the pointer associated
@@ -326,126 +312,13 @@ public class Repository {
      * @param branchName
      */
     public static void merge(String branchName) {
-        String splitCommitSha1 = findSplitPoint(branchName);
+        String splitCommitSha1 = MergeHelper.findSplitPoint(branchName);
         String commitSHA1 = Branch.readBranchIn(branchName, true).whichCommit();
-        mergeCheck(branchName, splitCommitSha1, commitSHA1);
-        doMerge(splitCommitSha1, commitSHA1);
-        commit("Merged " + branchName + " into " + HEAD.pointBranchName + ".");
+        MergeHelper.mergeCheck(branchName, splitCommitSha1, commitSHA1);
+        MergeHelper.doMerge(splitCommitSha1, commitSHA1);
+        String commitMsg = "Merged " + branchName + " into " + HEAD.getPointBranch() + ".";
+        commit(commitMsg, commitSHA1);
     }
-
-    /** Return File of fileName in commit.
-     * @param commit : Commit.
-     * @param fileName : name of file.
-     * @return File of fileName in commit.
-     */
-    private static File getFilefromCommit(Commit commit, String fileName) {
-        String id = commit.getCommitedFileFromFilemap(fileName);
-        return Utils.join(COMMITED_DIR, id);
-    }
-
-    /** Method for doing merge actually.
-     * @param splitSha1
-     * @param commitSHA1
-     */
-    private static void doMerge(String splitSha1, String commitSHA1) {
-        /** Read the three commit in. */
-        Commit split = Commit.readCommitFromFile(splitSha1);
-        Commit current = Commit.readCommitFromFile(HEAD.whichCommit());
-        Commit other = Commit.readCommitFromFile(commitSHA1);
-
-        Boolean isConflict = false;
-        for (Map.Entry<String, String> entry : split.fileMap.entrySet()) {
-            String fileName = entry.getKey();
-            Boolean isInCurrent = current.isFilemapContains(fileName);
-            Boolean isInOther = other.isFilemapContains(fileName);
-            if (isInCurrent && isInOther) {
-                /** **/
-                File otherFile = getFilefromCommit(other, fileName);
-                File currentFile = getFilefromCommit(current, fileName);
-                File splitFile = getFilefromCommit(split, fileName);
-                Boolean modifiedInOther = !isFileSame(splitFile, otherFile);
-                Boolean modifiedInCurrent = !isFileSame(splitFile, currentFile);
-                if (modifiedInCurrent && modifiedInOther) {
-                    /** Modified in other and HEAD. **/
-                    Boolean modifiedSameWay = isFileSame(otherFile, currentFile);
-                    if (!modifiedSameWay) {
-                        /**In different way: in conflict. **/
-                       overwriteConfilctFile(currentFile, otherFile, fileName);
-                       isConflict = true;
-                    }
-                    /** ELSE : in the same way, be left unchanged. */
-                } else if (!modifiedInCurrent) {
-                    /** 1. Modified in other but not in HEAD: be checked out and staged. **/
-                    String otherFileName = other.getCommitedFileFromFilemap(fileName);
-                    File dir = Utils.join(Repository.COMMITED_DIR, otherFileName);
-                    File dest = join(CWD, fileName);
-                    Utils.secureCopyFile(dir, dest);
-                    Blob.add(fileName);
-                } else if (!modifiedInOther) {
-                    /** 2. Modified in HEAD but not in other. Stay as they are. **/
-                }
-            } else if (!isInCurrent && !isInOther) {
-                /** Both be removed: be left unchanged. **/
-            } else if (!isInOther) {
-                File currentFile = getFilefromCommit(current, fileName);
-                File splitFile = getFilefromCommit(split, fileName);
-                Boolean unModifiedInCurrent = isFileSame(splitFile, currentFile);
-                if (unModifiedInCurrent) {
-                    /** 6. Unmodified in HEAD but not present in other: be removed and untracked. */
-                    File file = Utils.join(CWD, fileName);
-                    file.delete();
-                    Blob.remove(fileName, true);
-                } else {
-                    /** In different way*/
-                    overwriteConfilctFile(currentFile, null, fileName);
-                    isConflict = true;
-                }
-            } else if (!isInCurrent) {
-                File otherFile = getFilefromCommit(other, fileName);
-                File splitFile = getFilefromCommit(split, fileName);
-                Boolean unModifiedInOther = isFileSame(splitFile, otherFile);
-                if (!unModifiedInOther) {
-                    /** In different way. */
-                    overwriteConfilctFile(null, otherFile, fileName);
-                    isConflict = true;
-                }
-                /** ELSE: 7. Unmodified in other but not present in HEAD: remain absent. */
-            }
-        }
-
-        for (Map.Entry<String, String> entry : current.fileMap.entrySet()) {
-            String key = entry.getKey();
-            if (!split.isFilemapContains(key) && !other.isFilemapContains(key)) {
-                /** 4. Not in split nor other but in HEAD: remain as they are. */
-                Blob.stageForMerge(key, entry.getValue());
-            } else if (!split.isFilemapContains(key)) {
-                /** Both in current and in other, but absent in split. **/
-                File otherFile = getFilefromCommit(other, key);
-                File currentFile = getFilefromCommit(current, key);
-                if (!isFileSame(currentFile, otherFile)) {
-                    /** In different way. **/
-                    overwriteConfilctFile(currentFile, otherFile, key);
-                    isConflict = true;
-                }
-            }
-        }
-
-        for (Map.Entry<String, String> entry : other.fileMap.entrySet()) {
-            String key = entry.getKey();
-            if (!split.isFilemapContains(key) && !current.isFilemapContains(key)) {
-                /** 5. Not in split nor HEAD but in other: be checked out and staged. */
-                String fileId = other.getCommitedFileFromFilemap(key);
-                File dir = Utils.join(Repository.COMMITED_DIR, fileId);
-                File dest = join(CWD, key);
-                Utils.secureCopyFile(dir, dest);
-                Blob.stageForMerge(key, entry.getValue());
-            }
-        }
-        if (isConflict) {
-            System.out.println("Encountered a merge conflict.");
-        }
-    }
-
 
     /** helper function for commit().
      *  Move the files in the directory .gitlet/staged_obj/ to the directory .gitlet/commited_obj
@@ -479,7 +352,7 @@ public class Repository {
             Date date = calendar.getTime();
             String shaId = Utils.sha1(name + date.toString());
 
-            if (commit.fileMap.containsKey(name)) {
+            if (commit.isFilemapContains(name)) {
                 commit.fileMap.replace(name, shaId);
             } else {
                 commit.fileMap.put(name, shaId); //map from file name (hello.c) to SHA1 String
@@ -495,12 +368,10 @@ public class Repository {
             tmpfile.delete();
         }
 
-        if (!isRmNotEmpty) {
-            return;
-        }
+        if (!isRmNotEmpty) { return; }
         /** Remove the entry of unstaged files from fileMap. */
         for (Map.Entry<String, String> entry : Blob.removal.entrySet()) {
-            if (commit.fileMap.containsKey(entry.getKey())) {
+            if (commit.isFilemapContains(entry.getKey())) {
                 commit.fileMap.remove(entry.getKey());
             }
         }
@@ -512,7 +383,7 @@ public class Repository {
      */
     private static void copySnapshot(Commit commit) {
         Commit lastestCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        if (lastestCommit.fileMap != null) {
+        if (!lastestCommit.isFilemapEmpty()) {
             commit.fileMap = (TreeMap<String, String>) lastestCommit.fileMap.clone();
         } else {
             commit.fileMap = new TreeMap<>();
@@ -526,10 +397,10 @@ public class Repository {
      */
     private static boolean checkCommit2Unstaged(String filename) {
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
-        if (commit.fileMap == null) {
+        if (commit.isFilemapEmpty()) {
             return false;
         }
-        if (commit.fileMap.containsKey(filename)) {
+        if (commit.isFilemapContains(filename)) {
             File cwdfile = Utils.join(CWD, filename);
             cwdfile.delete();
             return true;
@@ -537,8 +408,7 @@ public class Repository {
         return false;
     }
 
-    /**
-     *  Unstaged the file if it is currently staged for addition.
+    /** Unstaged the file if it is currently staged for addition.
      *  Delete the file and update the blobMap.
      */
     private static boolean unstageOne(String filename, boolean isInCommit) {
@@ -552,8 +422,7 @@ public class Repository {
         return false;
     }
 
-    /**
-     *  Unstaged all of the files if it is currently staged for addition.
+    /** Unstaged all of the files if it is currently staged for addition.
      *  Delete them and update the blobMap.
      */
     private static void unstageAll() {
@@ -562,47 +431,13 @@ public class Repository {
         for (String filename: fileList) {
             file = Utils.join(STAGE_DIR, filename);
             file.delete();
+//            restrictedDelete(file);
         }
         Blob.deleteBlobMap();
     }
 
-    /**
-     *
-     * @param branchName
-     * @param splitCommitSha1
-     * @param commitSHA1 SHA1 String of branchName.
-     */
-    private static void mergeCheck(String branchName, String splitCommitSha1, String commitSHA1) {
-        /** If there are staged additions or removals exist, print the error message and exit. */
-        if (!Blob.isRemovalEmpty() || !Blob.isBlobMapEmpty()) {
-            Repository.abort("You have uncommitted changes.");
-        }
 
-        Commit branchCommit = Commit.readCommitFromFile(commitSHA1);
-//        if (splitCommitSha1 == null) {
-//            abort("Cannot find Split Point.");
-//        }
-        HEAD.readHEAD();
-        /** If attempting to merge a branch with itself, print the error message. */
-        if (branchName.equals(HEAD.pointBranchName)) {
-            abort("Cannot merge a branch with itself.");
-        }
-
-        /** If the merge is complete, and the operation ends with the message. */
-        if (currentBranchAncestrorSha1Set.contains(branchCommit.getSHA1())) {
-            abort("Given branch is an ancestor of the current branch.");
-        }
-        /** If the split point is the current branch, then the effect is to check out
-         * the given branch, and the operation ends after printing the message */
-        if (splitCommitSha1.equals(HEAD.whichCommit())) {
-            checkout(branchName);
-            abort("Current branch fast-forwarded.");
-        }
-        checkUncommited();
-        checkUnstaged();
-    }
-
-    private static void checkUncommited() {
+    protected static void checkUncommited() {
 //        if (!Blob.isBlobMapEmpty() || !Blob.isRemovalEmpty()) {
 //            abort("You have uncommitted changes.");
 //        }
@@ -613,10 +448,11 @@ public class Repository {
     }
 
     /** Check if there exists files unstaged. If exists, abort with error message. */
-    private static void checkUnstaged() {
+    protected static void checkUnstaged() {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        String errMsg = "There is an untracked file in the way; delete it, or add and commit it first.";
+        String errMsg = "There is an untracked file in the way;"
+                + " delete it, or add and commit it first.";
         Boolean toAbort = false;
         for (String file : fileList) {
             Boolean isCommitted = currentCommit.isFilemapContains(file);
@@ -626,200 +462,30 @@ public class Repository {
                     toAbort = true;
                 } else {
                     Boolean isStaged = Blob.isBlobmapContains(file);
-                    if (!isStaged) {
-                        toAbort = true;
-                    }
+                    if (!isStaged) { toAbort = true; }
                 }
             }
         }
-        if (toAbort) {
-            abort(errMsg);
-        }
-    }
-
-
-    private static void overwriteConfilctFile(File currentFile, File otherFile, String fileName) {
-        File newFile = Utils.join(CWD, fileName);
-        if (newFile.exists()) {
-            newFile.delete();
-        }
-        try {
-            newFile.createNewFile();
-        } catch (IOException ioexcp) {
-            System.out.println(ioexcp.getMessage());
-        }
-        String headStr = "<<<<<<< HEAD\n";
-        String sepStr = "=======\n";
-        String endStr = ">>>>>>>\n";
-        if (currentFile != null && otherFile != null) {
-            byte[] headbyte = readContents(currentFile);
-            byte[] otherbyte = readContents(otherFile);
-            Utils.writeContents(newFile, headStr, headbyte, sepStr, otherbyte, endStr);
-        } else if (currentFile == null) {
-            byte[] otherbyte = readContents(otherFile);
-            Utils.writeContents(newFile, headStr, sepStr, otherbyte, endStr);
-        } else if (otherFile == null) {
-            byte[] headbyte = readContents(currentFile);
-            Utils.writeContents(newFile, headStr, headbyte, sepStr, endStr);
-        }
-        Blob.add(fileName);
-    }
-    /**
-     *  Helper function for log(), global-log().
-     *  Print the commit information.
-     */
-    private static void printCommitInfo(Commit commit) {
-        System.out.println("===");
-        System.out.println("commit " + commit.getSHA1());
-        System.out.println("Date: " + commit.getDate());
-        System.out.println(commit.getMessage());
-        System.out.println();
-    }
-
-    /** Helper function for status(). */
-    private static void printBranch() {
-        System.out.println("=== Branches ===");
-        List<String> branchList = Utils.plainFilenamesIn(BRANCH_DIR);
-        HEAD.readHEAD();
-
-        for (String branchName: branchList) {
-            if (branchName.equals("HEAD")) {
-                continue;
-            }
-            if (branchName.equals(HEAD.pointBranchName)) {
-                System.out.print('*');
-            }
-            System.out.println(branchName);
-        }
-        System.out.println();
-    }
-
-    /** Helper function for status(). */
-    private static void printStagedFiles(Set<String> nameSet) {
-        System.out.println("=== Staged Files ===");
-        TreeMap<String, String> blobMap = Blob.getTreeMap(Blob.blobMap, false);
-        if (blobMap == null) {
-            abort("");
-        }
-        String value;
-        for (Map.Entry<String, String> entry : blobMap.entrySet()) {
-            value = entry.getValue();
-            nameSet.add(value);
-            System.out.println(value);
-        }
-        System.out.println();
-    }
-
-    /** Helper function for status(). */
-    private static void printRemovedFiles(Set<String> nameSet) {
-        System.out.println("=== Removed Files ===");
-        TreeMap<String, String> removal = Blob.getTreeMap(Blob.removal, true);
-        String key;
-        for (Map.Entry<String, String> entry : removal.entrySet()) {
-            key = entry.getKey();
-            System.out.println(key);
-        }
-        System.out.println();
-    }
-
-
-
-    /** Helper function for status().
-     *  modified but not staged.
-     *  Tracked in the current commit, changed in the working directory, but not staged.
-     *  Staged for addition, but with different contents than in the working directory.
-     *  Staged for addition, but deleted in the working directory.
-     *  Not staged for removal, but tracked in the current commit and deleted from the
-     *  working directory.
-     * */
-    private static void printModifications() {
-        System.out.println("=== Modifications Not Staged For Commit ===");
-
-        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        List<String> fileList = Utils.plainFilenamesIn(Repository.CWD);
-        Blob.loadBlobMap();
-        Blob.loadremoval();
-        for (String file : fileList) {
-            if ((Blob.blobMap == null  || !Blob.isBlobmapContains(file))
-                    && currentCommit.isFilemapContains(file)) {
-                /** Committed but changed and unstaged. */
-                File rawfile = Utils.join(COMMITED_DIR, currentCommit.fileMap.get(file));
-                File cwdfile = Utils.join(CWD, file);
-                if (!isFileSame(cwdfile, rawfile)) {
-                    System.out.println(file + "(modified)");
-                }
-            } else if (!currentCommit.isFilemapContains(file)
-                    && Blob.blobMap != null && Blob.isBlobmapContains(file)) {
-                /** Staged but not commited and changed.*/
-                String sha1 = Utils.sha1(file);
-                File rawfile = Utils.join(STAGE_DIR, sha1);
-                File cwdfile = Utils.join(CWD, file);
-                if (!isFileSame(cwdfile, rawfile)) {
-                    System.out.println(file + "(modified)");
-                }
-            }
-        }
-
-        if (Blob.blobMap != null) {
-            for (Map.Entry<String, String> entry : Blob.blobMap.entrySet()) {
-                if (!fileList.contains(entry.getValue())) {
-                    /** file is deleted. */
-                    System.out.println(entry.getValue() + "(deleted)");
-                }
-            }
-        }
-
-        if (currentCommit.fileMap != null) {
-            for (Map.Entry<String, String> entry : currentCommit.fileMap.entrySet()) {
-                if (!fileList.contains(entry.getKey())
-                        && (Blob.removal == null || !Blob.isRemovalContains(entry.getKey()))) {
-                    /** Committed and deleted but not unstaged. **/
-                    System.out.println(entry.getKey() + "(deleted)");
-                }
-            }
-        }
-        System.out.println();
-    }
-
-    /** Helper function for status(). */
-    private static void printUntrackedFiles() {
-        System.out.println("=== Untracked Files ===");
-        Blob.loadBlobMap();
-        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        List<String> fileList = Utils.plainFilenamesIn(CWD);
-        for (String file : fileList) {
-            /** Files presents in CWD, but neither staged nor tracked. **/
-            if (!Blob.isBlobmapContains(file)) {
-                if (currentCommit.fileMap == null || !currentCommit.isFilemapContains(file)) {
-                    System.out.println(file);
-                }
-            }
-        }
-        System.out.println();
+        if (toAbort) { abort(errMsg); }
     }
 
     /** Overwrite file named filename in commitSHA. */
     private static void overwriteOne(String commitSHA, String filename) {
         Commit commit = Commit.readCommitFromFile(commitSHA);
-        if (!commit.isFilemapContains(filename)) {
-            abort("File does not exist in that commit.");
-        }
-        String shaId = commit.fileMap.get(filename);
-        File dir = Utils.join(Repository.COMMITED_DIR, shaId);
+
+        String errMsg = "File does not exist in that commit.";
         File dest = join(CWD, filename);
+        File dir = commit.getFilefromCommit(filename, errMsg);
         Utils.secureCopyFile(dir, dest);
     }
 
     /** Overwrite all files in CWD in commitSHA. */
     private static void overwriteAll(String commitSHA) {
         Commit commit = Commit.readCommitFromFile(commitSHA);
-        if (commit.fileMap == null) {
-            deleteCWDall();
-            return;
-        }
+        if (commit.isFilemapEmpty()) { return; }
         for (Map.Entry<String, String> entry : commit.fileMap.entrySet()) {
-            String shaId = commit.fileMap.get(entry.getKey());
-            File dir = Utils.join(Repository.COMMITED_DIR, shaId);
+            String key = entry.getKey();
+            File dir = commit.getFilefromCommit(entry.getKey(), "no file named " + key);
             File dest = join(CWD, entry.getKey());
             Utils.secureCopyFile(dir, dest);
         }
@@ -830,24 +496,23 @@ public class Repository {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
         Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
         Boolean toAbort = false;
-        String errMsg = "There is an untracked file in the way; delete it, or add and commit it first.";
+        String errMsg = "There is an untracked file in the way; "
+                + "delete it, or add and commit it first.";
         for (String file : fileList) {
             if (!currentCommit.isFilemapContains(file) && !Blob.isBlobmapContains(file)) {
                 toAbort = true;
                 break;
             }
         }
-        if (toAbort) {
-            abort(errMsg);
-        }
+        if (toAbort) { abort(errMsg); }
     }
 
     /** Delete all of the files in current working directory. */
     private static void deleteCWDall() {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
-        File file;
+//        File file;
         for (String filename: fileList) {
-            file = join(CWD, filename);
+//            file = join(CWD, filename);
             Utils.restrictedDelete(filename);
         }
     }
@@ -863,148 +528,5 @@ public class Repository {
         restrictCreateDir(BRANCH_DIR);
     }
 
-    /** Return SHA1 String of Split point commit.
-     * @param branchName
-     * @return
-     */
-    private static String findSplitPoint(String branchName) {
-        Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
-
-        /** Add ancestor of the commit indicated by HEAD into Set. **/
-        /** O(n). n : length from initial commit to the commit indicated by HEAD. */
-        String parent;
-        while (true) {
-            parent = commit.getParent();
-            currentBranchAncestrorSha1Set.add(commit.getSHA1());
-            if (parent == null) {
-                break;
-            }
-            commit = Commit.readCommitFromFile(parent);
-        }
-        /** Read the commit indicated by branchName in. **/
-        String id = Branch.readBranchIn(branchName, true).whichCommit();
-        Commit commit2 = Commit.readCommitFromFile(id);
-        if (commit2 == null) {
-            return null;
-        }
-
-        /** Travel from the commit indicated by branchName back,
-         *  util we came across the latest common ancestor of these two commit. */
-        /** O(n). n : length from intial commit to the commit indicated by branchName. */
-        String parent2;
-        while (true) {
-            parent2 = commit2.getParent();
-            /** The latest common ancestor of these two commit. */
-            if (currentBranchAncestrorSha1Set.contains(commit2.getSHA1())) {
-                /** Expected time complexity of the op contains in Hashset if O(1). **/
-                break;
-            }
-            /** In case of bad commit structure. */
-            if (parent2 == null) {
-                break;
-            }
-            commit2 = Commit.readCommitFromFile(parent2);
-        }
-
-        if (parent2 == null) {
-            abort("Error when finding split point.");
-        }
-        return commit2.getSHA1();
-    }
-
-
-    /** Abort with message printed.
-     * @param msg : message.
-     */
-    public static void abort(String msg) {
-        System.out.println(msg);
-        System.exit(0);
-    }
-
-    /** Debug helper function.
-     *  Print fileMap of the Commit pointed by HEAD.
-     */
-    private static void testCommit() {
-        Commit tmp = Commit.readCommitFromFile(HEAD.whichCommit());
-        for (Map.Entry<String, String> entry : tmp.fileMap.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            System.out.println(key + " => " + value);
-        }
-
-    }
-
-    /** Debug helper function. */
-    public static void testBlob() {
-        Blob.blobMap = Blob.getTreeMap(Blob.blobMap, false);
-        for (Map.Entry<String, String> entry : Blob.blobMap.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            System.out.println(key + " => " + value);
-        }
-    }
-
-    private static void traceback() {
-        Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
-        String parent;
-        while (true) {
-            parent = commit.getParent();
-            printCommitInfo(commit);
-            if (parent == null) {
-                break;
-            }
-            commit = Commit.readCommitFromFile(parent);
-        }
-    }
-
-    public static void printCommitInfo() {
-        traceback();
-        HEAD.switchHEAD("fork");
-        traceback();
-    }
-
-    public static void printStaged() {
-
-    }
-
-    public static void printUnstaged() {
-
-    }
-
-    public static void printSplitPoint() {
-        String sha1 = findSplitPoint("fork");
-        Commit commit = Commit.readCommitFromFile(sha1);
-        System.out.println(commit.getMessage());
-    }
-
-
-    public static void main(String[] args) {
-        String msg = "select --> blobMap, commit, remove, branch";
-        if (args.length == 0) {
-            abort(msg);
-        }
-
-        switch (args[0]) {
-            case "blobMap":
-                testBlob();
-                break;
-            case "commit":
-                testCommit();
-                break;
-            case "remove":
-                break;
-
-            case "branch":
-                printCommitInfo();
-                break;
-
-            case "split":
-                printSplitPoint();
-                break;
-
-            default:
-                break;
-        }
-    }
 
 }
