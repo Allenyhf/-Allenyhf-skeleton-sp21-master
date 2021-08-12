@@ -3,8 +3,12 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static gitlet.Repository.CWD;
+import static gitlet.Repository.STAGE_DIR;
 
 import static gitlet.Utils.*;
 import static gitlet.Utils.readContents;
@@ -24,6 +28,8 @@ public class MergeHelper {
      *  Time Complexity : O(n), n is the total number of ancestors of the two commits.
      * @param branchName
      * @return SHA1 String of Split point commit.
+     * TIME COMPLEXITY : O(NlogN).
+     *  N : length from intial commit to the commit indicated by branchName.
      */
     protected static String findSplitPoint(String branchName) {
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
@@ -47,8 +53,9 @@ public class MergeHelper {
         }
 
         /** Travel from the commit indicated by branchName back,
-         *  util we came across the latest common ancestor of these two commit. */
-        /** O(n). n : length from intial commit to the commit indicated by branchName. */
+         *  util we came across the latest common ancestor of these two commit.
+         * TIME COMPLEXITY : O(NlogN).
+         * N : length from intial commit to the commit indicated by branchName. */
         String parent2;
         while (true) {
             parent2 = commit2.getfirstParent();
@@ -72,6 +79,8 @@ public class MergeHelper {
      * @param branchName : name of branch.
      * @param splitSha1 : sha1 String of split commit.
      * @param commitSHA1 SHA1 String of branchName.
+     * TIME COMPLEXITY : O(logN).
+     * N is the total number of ancestor commits for the two branches
      */
     protected static void mergeCheck(String branchName, String splitSha1, String commitSHA1) {
         /** If there are staged additions or removals exist, print the error message and exit. */
@@ -87,7 +96,7 @@ public class MergeHelper {
         }
 
         /** If the merge is complete, and the operation ends with the message. */
-        if (ancestrorSha1Set.contains(branchCommit.getSHA1())) {
+        if (ancestrorSha1Set.contains(branchCommit.getSHA1())) { // TC: O(logN).
             abort("Given branch is an ancestor of the current branch.");
         }
         /** If the split point is the current branch, then the effect is to check out
@@ -96,9 +105,50 @@ public class MergeHelper {
             Repository.checkout(branchName);
             abort("Current branch fast-forwarded.");
         }
-        Repository.checkUncommited();
-        Repository.checkUnstaged();
+        checkUncommited();
+        checkUnstaged();
     }
+
+    /** Check if there exists file staged but not committed.
+     *  if exists, abort with message.
+     */
+    private static void checkUncommited() {
+//        if (!Blob.isBlobMapEmpty() || !Blob.isRemovalEmpty()) {
+//            abort("You have uncommitted changes.");
+//        }
+        List<String> fileList = Utils.plainFilenamesIn(STAGE_DIR);
+        if (!fileList.isEmpty()) {
+            abort("You have uncommitted changes.");
+        }
+    }
+
+    /** Check if there exists files unstaged. If exists, abort with error message. */
+    private static void checkUnstaged() {
+        List<String> fileList = Utils.plainFilenamesIn(CWD);
+        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
+        String errMsg = "There is an untracked file in the way;"
+                + " delete it, or add and commit it first.";
+        Boolean toAbort = false;
+        for (String file : fileList) {
+            Boolean isCommitted = currentCommit.isFilemapContains(file);
+            if (!isCommitted) {
+                Boolean isBlobMapEmpty = Blob.isBlobMapEmpty();
+                if (isBlobMapEmpty) {
+                    toAbort = true;
+                } else {
+                    Boolean isStaged = Blob.isBlobmapContains(file);
+                    if (!isStaged) {
+                        toAbort = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (toAbort) {
+            abort(errMsg);
+        }
+    }
+
 
     /** Read the commit (current, split and other) in. */
     private static void readCommit(String splitSha1, String commitSha1) {
@@ -167,7 +217,7 @@ public class MergeHelper {
                         /** ELSE : in the same way, be left unchanged. */
                     } else if (!modifiedInCurrent) {
                         /** 1. Modified in other but not in HEAD: be checked out and staged. **/
-                        String otherFileName = other.getCommitedFileFromFilemap(fileName);
+                        String otherFileName = other.getCommittedFileSHA1(fileName);
                         File dir = Utils.join(Repository.COMMITED_DIR, otherFileName);
                         File dest = join(Repository.CWD, fileName);
                         Utils.secureCopyFile(dir, dest);
@@ -235,7 +285,7 @@ public class MergeHelper {
             String key = entry.getKey();
             if (!split.isFilemapContains(key) && !current.isFilemapContains(key)) {
                 /** 5. Not in split nor HEAD but in other: be checked out and staged. */
-                String fileId = other.getCommitedFileFromFilemap(key);
+                String fileId = other.getCommittedFileSHA1(key);
                 File dir = Utils.join(Repository.COMMITED_DIR, fileId);
                 File dest = join(Repository.CWD, key);
                 Utils.secureCopyFile(dir, dest);

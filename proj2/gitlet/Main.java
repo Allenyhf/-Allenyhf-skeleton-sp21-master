@@ -63,16 +63,6 @@ public class Main {
                 break;
 
             case "checkout":
-//                if (args.length == 2) {
-//                    // checkout [branch name]
-//                    Repository.checkout(args[1]);
-//                } else if (args.length == 3) {
-//                    // checkout -- [file name]
-//                    Repository.checkout(args[1], args[2]);
-//                } else if (args.length == 4) {
-//                    // checkout [commit id] -- [file name]
-//                    Repository.checkout(args[1], args[2], args[3]);
-//                }
                 switch (args.length) {
                     case 2:
                     // checkout [branch name]

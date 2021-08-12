@@ -52,7 +52,7 @@ public class Commit implements Serializable {
      * @param commitId indicates which Commit, it's actual name of the Commit in File System
      * @return the Commit read in
      */
-    public static Commit readCommitFromFile(String commitId) {
+    protected static Commit readCommitFromFile(String commitId) {
         File infile = Utils.join(Repository.INFOCOMMIT_DIR, commitId);
         if (!infile.exists()) {
             abort("No commit with that id exists.");
@@ -62,7 +62,7 @@ public class Commit implements Serializable {
     }
 
     /** Save this Commit to a file in File System for future use. */
-    public void saveCommit() {
+    protected void saveCommit() {
         File outfile = Utils.join(Repository.INFOCOMMIT_DIR, sha1Id);
         try {
             outfile.createNewFile();
@@ -73,30 +73,30 @@ public class Commit implements Serializable {
     }
 
     /** Return date of this Commit **/
-    public String getDate() {
+    protected String getDate() {
         return dateString;
     }
     /** Return message of this Commit **/
-    public String getMessage() {
+    protected String getMessage() {
         return message;
     }
     /** Return first parent of this Commit, which is indicated by SHA1 String **/
-    public String getfirstParent() {
+    protected String getfirstParent() {
         return firstparent;
     }
     /** Return second parent of this Commit, which is indicated by SHA1 String **/
-    public String getsecondParent() {
+    protected String getsecondParent() {
         return secondparent;
     }
     /** Return SHA1 String of this Commit */
-    public String getSHA1() {
+    protected String getSHA1() {
         return sha1Id;
     }
 
     /** Load the file specified by filename of this Commit into file.
      *  If not exists, just return null.
      **/
-    public File loadfile(String filename) {
+    protected File loadfile(String filename) {
         /** This commit doesn't contain file named filename, just return false. */
         if (fileMap == null || !fileMap.containsKey(filename)) {
             return null;
@@ -107,21 +107,26 @@ public class Commit implements Serializable {
         return dir;
     }
 
-    /** Return if filemap is empty or not. */
-    public boolean isFilemapEmpty() {
+    /** Return if filemap is null or not.
+     * @return true if filemap is null.
+     * */
+    protected boolean isFilemapNull() {
         return fileMap == null;
     }
 
     /** Return if fileMap contains key. */
-    public boolean isFilemapContains(String key) {
+    protected boolean isFilemapContains(String key) {
         if (this.fileMap == null) {
             return false;
         }
         return this.fileMap.containsKey(key);
     }
 
-    /** Return sha1 String of file named key. */
-    protected String getCommitedFileFromFilemap(String key) {
+    /** Return SHA1 String of file named key.
+     * @param key : name of file.
+     * @return SHA1 String of file.
+     * */
+    protected String getCommittedFileSHA1(String key) {
         if (this.fileMap == null) {
             return null;
         }
@@ -133,7 +138,7 @@ public class Commit implements Serializable {
      * @return File of fileName in commit.
      */
     protected File getFilefromCommit(String fileName, String errMsg) {
-        String id = this.getCommitedFileFromFilemap(fileName);
+        String id = this.getCommittedFileSHA1(fileName);
         if (id == null) {
             Utils.abort(errMsg);
         }

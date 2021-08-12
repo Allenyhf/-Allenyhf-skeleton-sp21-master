@@ -37,6 +37,7 @@ public class Repository {
      *
      *  In addition, save the new created initial commit, master branch,
      *  HEAD branch to the file system for future use.
+     *  TIME COMPLEXITY : O(1).
      */
     public static void init() {
         String errMsg = "A Gitlet version-control system already exists in the current directory.";
@@ -56,7 +57,9 @@ public class Repository {
      *  If the file is identical to the version in the current commit, do not stage
      *  it, and remove it from the staging area if already there.
      *  If the new-added file is already unstaged, just unremove it.
-     *  @param filename name of File to be added (staged).
+     *  @param filename : name of File to be added (staged).
+     *  TIME COMPLEXITY : O(M + logN)
+     *  M:the size of the file being added   N:the number of files in the commit.
      */
     public static void add(String filename) {
         File destFile = join(CWD, filename);
@@ -75,7 +78,7 @@ public class Repository {
 
         /** Load current Commit and files in it. */
         Commit lastCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        File commitedFile = lastCommit.loadfile(filename);
+        File commitedFile = lastCommit.loadfile(filename); //TC: O(logN)
 
         /** Check if file staged is the same as the file in CWD. */
         /** If it is, remove it from staging area. */
@@ -107,6 +110,8 @@ public class Repository {
      *  result of being staged for removal by the rm command.
      * @param msg : message for new commit.
      * @param sp : second parent.
+     * TIME COMPLEXITY : O(N) , N : total number of files the commit is tracking.
+     * SPACE COMPLEXITY : O(M) , M : total size of the files staged for addition when "commit".
      */
     public static void commit(String msg, String sp) {
         if (msg.length() == 0) {
@@ -114,8 +119,8 @@ public class Repository {
         }
 
         Commit commit = new Commit(msg, HEAD.whichCommit(), sp);
-        copySnapshot(commit);
-        staged2Commited(commit);
+        CommitHelper.copySnapshot(commit); // TC : O(N).
+        CommitHelper.staged2Commited(commit); // SC : O(M).
         HEAD.switch2commit(commit.getSHA1());
         commit.saveCommit();
     }
@@ -124,10 +129,12 @@ public class Repository {
      * tracked in the current commit, stage it for removal and remove the file from
      * the working directory if the user has not already done so (don't remove it
      * unless it is tracked in the current commit).
+     * @param filename : name of file to "rm".
+     * TIME COMPLEXITY : O(logN). N : total number of files the commit is tracking.
      */
     public static void rm(String filename) {
-        boolean iSinCommit = checkCommit2Unstaged(filename);
-        boolean iSinStage = unstageOne(filename, iSinCommit);
+        boolean iSinCommit = StageHelper.checkCommit2Unstaged(filename);
+        boolean iSinStage = StageHelper.unstageOne(filename);
         if (!iSinCommit && !iSinStage) {
             abort("No reason to remove the file.");
         }
@@ -140,6 +147,7 @@ public class Repository {
      * (In regular Git, this is what you get with git log --first-parent). This set
      * of commit nodes is called the commit’s history. The information it should display
      * is the commit id, the time the commit was made, and the commit message.
+     * TIME COMPLEXITY : O(N).  N : the number of nodes in head’s history.
      */
     public static void log() {
         Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
@@ -157,6 +165,7 @@ public class Repository {
     /** Like log, except displays information about all commits ever made. The order of
      *  the commits does not matter. Hint: there is a useful method in gitlet.Utils that
      *  will help you iterate over files within a directory.
+     *  TIME COMPLEXITY : O(N).  N : the number of commits ever made.
      */
     public static void globalLog() {
         List<String> fileList = Utils.plainFilenamesIn(INFOCOMMIT_DIR);
@@ -172,6 +181,8 @@ public class Repository {
      * If there are multiple such commits, it prints the ids out on separate lines. The
      * commit message is a single operand; to indicate a multiword message, put the operand
      * in quotation marks, as for the commit command below.
+     * @param msg : commit message to find.
+     * TIME COMPLEXITY : O(N).  N : the number of commits ever made.
      */
     public static void find(String msg) {
         if (msg == null) {
@@ -183,7 +194,7 @@ public class Repository {
         for (String filename: fileList) {
             commit = Commit.readCommitFromFile(filename);
             if (commit.getMessage().equals(msg)) {
-                System.out.println(commit.getSHA1());
+                message(commit.getSHA1());
                 isFinded = true;
             }
         }
@@ -207,6 +218,8 @@ public class Repository {
     /** Takes the version of the file as it exists in the head commit and puts it in the
      * working directory, overwriting the version of the file that’s already there if there
      * is one. The new version of the file is not staged.
+     * @param operand : args[1].
+     * @param filename : name of file to checkout.
      */
     public static void checkout(String operand, String filename) {
         // checkout -- [file name]
@@ -214,7 +227,7 @@ public class Repository {
             Utils.abort("Incorrect operands.");
         }
         String commitId = HEAD.whichCommit();
-        overwriteOne(commitId, filename);
+        CheckoutHelper.overwriteOne(commitId, filename);
         // unstageOne(filename);
         /** Only version 3 (checkout of a full branch) modifies the staging area:
         * otherwise files scheduled for addition or removal remain so. */
@@ -229,6 +242,7 @@ public class Repository {
      *  present in the checked-out branch are deleted.
      *  The staging area is cleared, unless the checked-out branch is the current branch
      *  (see Failure cases below).
+     * @param branchName : name of branch to checkout.
      */
     public static void checkout(String branchName) {
         // checkout [branch name]
@@ -241,23 +255,35 @@ public class Repository {
             abort("No such branch exists.");
         }
 
-        checkUntracked();
+        CheckoutHelper.checkUntracked();
         HEAD.switchHEAD(branchName);
         deleteCWDall();
-        overwriteAll(HEAD.whichCommit());
-        unstageAll();
+        CheckoutHelper.overwriteAll(HEAD.whichCommit());
+        CheckoutHelper.unstageAll();
     }
 
     /** Takes the version of the file as it exists in the commit with the given id, and puts
      * it in the working directory, overwriting the version of the file that’s already there
      * if there is one. The new version of the file is not staged.
      * checkout [commit id] -- [file name]
+     * @param commitName : commit id to checkout.
+     * @param operand : args[2].
+     * @param fileName : name of file to checkout.
      */
     public static void checkout(String commitName, String operand, String fileName) {
         if (!operand.equals("--")) {
             Utils.abort("Incorrect operands.");
         }
-        overwriteOne(commitName, fileName);
+        String commitId;
+        if (commitName.length() < 40) {
+            commitId = CheckoutHelper.find(commitName);
+            if (commitId == null) {
+                abort("CommitId of " + commitName + " doesn't exist.");
+            }
+        } else {
+            commitId = commitName;
+        }
+        CheckoutHelper.overwriteOne(commitId, fileName);
         // unstageOne(fileName);
         /* Only version 3 (checkout of a full branch) modifies the staging area:
         * otherwise files scheduled for addition or removal remain so. */
@@ -268,6 +294,8 @@ public class Repository {
      * node. This command does NOT immediately switch to the newly created branch (just as
      * in real Git). Before you ever call branch, your code should be running with a default
      * branch called master.
+     * @param branchName : name of new branch.
+     * TIME COMPLEXITY : O(1).
      */
     public static void branch(String branchName) {
         if (Branch.isBranchExist(branchName)) {
@@ -280,6 +308,8 @@ public class Repository {
     /** Deletes the branch with the given name. This only means to delete the pointer associated
      *  with the branch; it does not mean to delete all commits that were created under the branch,
      *  or anything like that.
+     * @param branchName : name of branch to remove.
+     *  TIME COMPLEXITY : O(1).
      */
     public static void rmBranch(String branchName) {
         Branch.deleteBranch(branchName);
@@ -290,21 +320,27 @@ public class Repository {
      *  intro for an example of what happens to the head pointer after using reset. The [commit id]
      *  may be abbreviated as for checkout. The staging area is cleared. The command is essentially
      *  checkout of an arbitrary commit that also changes the current branch head.
+     * @param commitID : SHA1 String of commit to reset to.
+     * TIME COMPLEXITY : O(N). N : total size of files tracked by the given commit.
+     *  O(1), be constant with respect to any measure involving number of commits.
     */
     public static void reset(String commitID) {
-        checkUntracked();
-//        Commit commit = Commit.readCommitFromFile(commitID);
+        CheckoutHelper.checkUntracked();
+        Commit commit = Commit.readCommitFromFile(commitID);
         deleteCWDall();
         HEAD.switch2commit(commitID);
-        overwriteAll(commitID);
-        unstageAll();
+        CheckoutHelper.overwriteAll(commitID); // TC : O(1).
+        CheckoutHelper.unstageAll();
     }
 
     /** Driver method for merge.
-     * @param branchName
+     * @param branchName : name of the other branch.
+     * TIME COMPLEXITY : O(NlgN+D).
+     *   N : the total number of ancestor commits for the two branches
+     *   D : total amount of data in all the files under these commits.
      */
     public static void merge(String branchName) {
-        String splitCommitSha1 = MergeHelper.findSplitPoint(branchName);
+        String splitCommitSha1 = MergeHelper.findSplitPoint(branchName); // TC: O(NlogN)
         String commitSHA1 = Branch.readBranchIn(branchName, true).whichCommit();
         MergeHelper.mergeCheck(branchName, splitCommitSha1, commitSHA1);
         MergeHelper.doMerge(splitCommitSha1, commitSHA1);
@@ -312,196 +348,6 @@ public class Repository {
         commit(commitMsg, commitSHA1);
     }
 
-    /** helper function for commit().
-     *  Move the files in the directory .gitlet/staged_obj/ to the directory .gitlet/commited_obj
-     * @param commit
-     */
-    private static void staged2Commited(Commit commit) {
-        moveFromStaged2Commited(commit);
-        Blob.deleteBlobMap();
-        Blob.deleteRemoval();
-    }
-
-    /** helper function for Staged2Commited().
-     * @param commit
-     */
-    private static void moveFromStaged2Commited(Commit commit) {
-        List<String> listOfStaged = plainFilenamesIn(STAGE_DIR);
-        Blob.loadremoval();
-        Blob.loadBlobMap();
-        if (Blob.blobMap.isEmpty() && Blob.isRemovalEmpty()) {
-            abort("No changes added to the commit.");
-        }
-
-        File tmpfile;
-        File destfile;
-        Boolean isRmNotEmpty = !Blob.isRemovalEmpty();
-        for (String file: listOfStaged) { // file is a SHA1 String
-            tmpfile = Utils.join(STAGE_DIR, file);
-            String name = Blob.blobMap.get(file); // name: hello.c (for example)
-
-            Calendar calendar = Calendar.getInstance();
-            Date date = calendar.getTime();
-            String shaId = Utils.sha1(name + date.toString());
-
-            if (commit.isFilemapContains(name)) {
-                commit.fileMap.replace(name, shaId);
-            } else {
-                commit.fileMap.put(name, shaId); //map from file name (hello.c) to SHA1 String
-            }
-            destfile = Utils.join(COMMITED_DIR, shaId);
-            Utils.secureCopyFile(tmpfile, destfile);
-            tmpfile.delete();
-        }
-
-        if (!isRmNotEmpty) {
-            return;
-        }
-        /** Remove the entry of unstaged files from fileMap. */
-        for (Map.Entry<String, String> entry : Blob.removal.entrySet()) {
-            if (commit.isFilemapContains(entry.getKey())) {
-                commit.fileMap.remove(entry.getKey());
-            }
-        }
-    }
-
-    /**  Copy snapshots of current Commit to the new Commit commit.
-     *   If no snapshots, namely fileMap of current Commit is empty,
-     *   just create a new TreeMap.
-     */
-    private static void copySnapshot(Commit commit) {
-        Commit lastestCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        if (!lastestCommit.isFilemapEmpty()) {
-            commit.fileMap = (TreeMap<String, String>) lastestCommit.fileMap.clone();
-        } else {
-            commit.fileMap = new TreeMap<>();
-        }
-    }
-
-    /** Check current Commit for file to unstage from it.
-     *  If the file exists in the Commit, move it from .gitlet/commited_obj to .gitlet/unstaged_obj.
-     *  --And do not remove the key-value pair from fileMap.--
-     *  If it is in the Commit, remove the file from CWD.
-     */
-    private static boolean checkCommit2Unstaged(String filename) {
-        Commit commit = Commit.readCommitFromFile(HEAD.whichCommit());
-        if (commit.isFilemapEmpty()) {
-            return false;
-        }
-        if (commit.isFilemapContains(filename)) {
-            File cwdfile = Utils.join(CWD, filename);
-            cwdfile.delete();
-            return true;
-        }
-        return false;
-    }
-
-    /** Unstaged the file if it is currently staged for addition.
-     *  Delete the file and update the blobMap.
-     */
-    private static boolean unstageOne(String filename, boolean isInCommit) {
-        String shaId = Utils.sha1(filename);
-        File destfile = join(STAGE_DIR, shaId);
-        if (destfile.exists()) {
-            destfile.delete();
-            Blob.deteleItem(filename);
-            return true;
-        }
-        return false;
-    }
-
-    /** Unstaged all of the files if it is currently staged for addition.
-     *  Delete them and update the blobMap.
-     */
-    private static void unstageAll() {
-        List<String> fileList = Utils.plainFilenamesIn(STAGE_DIR);
-        File file;
-        for (String filename: fileList) {
-            file = Utils.join(STAGE_DIR, filename);
-            file.delete();
-//            restrictedDelete(file);
-        }
-        Blob.deleteBlobMap();
-    }
-
-
-    protected static void checkUncommited() {
-//        if (!Blob.isBlobMapEmpty() || !Blob.isRemovalEmpty()) {
-//            abort("You have uncommitted changes.");
-//        }
-        List<String> fileList = Utils.plainFilenamesIn(STAGE_DIR);
-        if (!fileList.isEmpty()) {
-            abort("You have uncommitted changes.");
-        }
-    }
-
-    /** Check if there exists files unstaged. If exists, abort with error message. */
-    protected static void checkUnstaged() {
-        List<String> fileList = Utils.plainFilenamesIn(CWD);
-        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        String errMsg = "There is an untracked file in the way;"
-                + " delete it, or add and commit it first.";
-        Boolean toAbort = false;
-        for (String file : fileList) {
-            Boolean isCommitted = currentCommit.isFilemapContains(file);
-            if (!isCommitted) {
-                Boolean isBlobMapEmpty = Blob.isBlobMapEmpty();
-                if (isBlobMapEmpty) {
-                    toAbort = true;
-                } else {
-                    Boolean isStaged = Blob.isBlobmapContains(file);
-                    if (!isStaged) {
-                        toAbort = true;
-                    }
-                }
-            }
-        }
-        if (toAbort) {
-            abort(errMsg);
-        }
-    }
-
-    /** Overwrite file named filename in commitSHA. */
-    private static void overwriteOne(String commitSHA, String filename) {
-        Commit commit = Commit.readCommitFromFile(commitSHA);
-
-        String errMsg = "File does not exist in that commit.";
-        File dest = join(CWD, filename);
-        File dir = commit.getFilefromCommit(filename, errMsg);
-        Utils.secureCopyFile(dir, dest);
-    }
-
-    /** Overwrite all files in CWD in commitSHA. */
-    private static void overwriteAll(String commitSHA) {
-        Commit commit = Commit.readCommitFromFile(commitSHA);
-        if (commit.isFilemapEmpty()) {
-            return;
-        }
-        for (Map.Entry<String, String> entry : commit.fileMap.entrySet()) {
-            String key = entry.getKey();
-            File dir = commit.getFilefromCommit(entry.getKey(), "no file named " + key);
-            File dest = join(CWD, entry.getKey());
-            Utils.secureCopyFile(dir, dest);
-        }
-    }
-
-    /** If there are some files untracked, just abort. */
-    private static void checkUntracked() {
-        List<String> fileList = Utils.plainFilenamesIn(CWD);
-        Commit currentCommit = Commit.readCommitFromFile(HEAD.whichCommit());
-        Boolean toAbort = false;
-        String errMsg = "There is an untracked file in the way; "
-                + "delete it, or add and commit it first.";
-        for (String file : fileList) {
-            if (!currentCommit.isFilemapContains(file) && !Blob.isBlobmapContains(file)) {
-                toAbort = true;
-                break;
-            }
-        }
-        if (toAbort) {
-            abort(errMsg);
-        }
-    }
 
     /** Delete all of the files in current working directory. */
     private static void deleteCWDall() {
