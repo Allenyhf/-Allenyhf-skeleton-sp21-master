@@ -45,7 +45,7 @@ public class Commit implements Serializable {
             dateString = Utils.getFormattedTime();
         }
         sha1Id = Utils.sha1(message + firstparent + dateString);
-        dateString = "Thu Nov 9 17:01:33 2017 -0800";
+        dateString = "Thu Nov 9 17:01:33 2021 -0800";
     }
 
     /** Read Commit from file system by SHA1 of the Commit.

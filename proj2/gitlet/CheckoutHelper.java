@@ -86,7 +86,7 @@ public class CheckoutHelper {
         List<String> commitList = Utils.plainFilenamesIn(INFOCOMMIT_DIR);
         String result = null;
         for (String commit : commitList) {
-            if (result == null && commit.contains(commitName)){
+            if (result == null && commit.contains(commitName)) {
                 result = commit;
             } else if (commit.contains(commitName)) {
                 abort("There exists more than one commitId.");

@@ -1,3 +1,4 @@
+
 package gitlet;
 
 import java.io.File;
@@ -15,7 +16,6 @@ import static gitlet.Utils.readContents;
 
 /** Class doing actual work for "merge". */
 public class MergeHelper {
-
     private static Commit split;
     private static Commit current;
     private static Commit other;
@@ -222,14 +222,15 @@ public class MergeHelper {
                         File dest = join(Repository.CWD, fileName);
                         Utils.secureCopyFile(dir, dest);
                         Blob.add(fileName);
-                    } else if (!modifiedInOther) {
-                        /** 2. Modified in HEAD but not in other. Stay as they are. **/
                     }
+//                    else if (!modifiedInOther) {
+                        /** 2. Modified in HEAD but not in other. Stay as they are. **/
+//                    }
                     break;
                 case 2:
                     Boolean unModifiedInCurrent = isFileSame(splitFile, currentFile);
                     if (unModifiedInCurrent) {
-                        /**6. Unmodified in HEAD but not present in other: be removed and untracked. */
+                        /**6. Unmodified in HEAD but absent in other: be removed and untracked.*/
                         File file = Utils.join(Repository.CWD, fileName);
                         file.delete();
                         Blob.remove(fileName, true);
@@ -305,7 +306,9 @@ public class MergeHelper {
      * */
     private static void overwriteConfilctFile(File currFile, File otherFile, String fileName) {
         File newFile = Utils.join(Repository.CWD, fileName);
-        if (newFile.exists()) { newFile.delete(); }
+        if (newFile.exists()) {
+            newFile.delete();
+        }
         try {
             newFile.createNewFile();
         } catch (IOException ioexcp) {
@@ -380,7 +383,8 @@ public class MergeHelper {
 //                File splitFile = split.getFilefromCommit(fileName);
 //                Boolean unModifiedInCurrent = isFileSame(splitFile, currentFile);
 //                if (unModifiedInCurrent) {
-//                    /** 6. Unmodified in HEAD but not present in other: be removed and untracked. */
+//                    /** 6. Unmodified in HEAD but not present in other:
+//                        be removed and untracked. */
 //                    File file = Utils.join(CWD, fileName);
 //                    file.delete();
 //                    Blob.remove(fileName, true);

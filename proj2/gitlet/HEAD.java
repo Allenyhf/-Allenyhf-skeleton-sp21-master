@@ -63,7 +63,9 @@ public class HEAD implements Serializable {
         return pointBranch.whichCommit();
     }
     /** Return pointBranchName. */
-    public static String getPointBranch() { return pointBranchName; }
+    public static String getPointBranch() {
+        return pointBranchName;
+    }
     /** Set pointBranchName to name.
      * @param name : name of new branch to indicate.
      * */
