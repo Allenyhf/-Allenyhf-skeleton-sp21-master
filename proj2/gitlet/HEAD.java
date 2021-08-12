@@ -52,11 +52,9 @@ public class HEAD implements Serializable {
         Branch pointBranch = Branch.readBranchIn(pointBranchName, false);
         return pointBranch.whichCommit();
     }
-
-    public static String getPointBranch() {
-        return pointBranchName;
-    }
-
+    /** Return pointBranchName. */
+    public static String getPointBranch() { return pointBranchName; }
+    /** Set pointBranchName to name. */
     public static void setPointBranch(String name) {
         pointBranchName = name;
     }

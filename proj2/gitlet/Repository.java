@@ -1,9 +1,6 @@
 package gitlet;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 import static gitlet.Utils.*;
@@ -56,10 +53,8 @@ public class Repository {
     /** Adds a copy of the file as it currently exists to the staging area.
      *
      *  If file named filename doesn't exists, or it is a directory, just exit.
-     *
      *  If the file is identical to the version in the current commit, do not stage
      *  it, and remove it from the staging area if already there.
-     *
      *  If the new-added file is already unstaged, just unremove it.
      *  @param filename name of File to be added (staged).
      */
@@ -152,7 +147,9 @@ public class Repository {
         while (true) {
             parent = commit.getfirstParent();
             commit.printCommitInfo();
-            if (parent == null) { break; }
+            if (parent == null) {
+                break;
+            }
             commit = Commit.readCommitFromFile(parent);
         }
     }
@@ -191,7 +188,7 @@ public class Repository {
             }
         }
         if (!isFinded) {
-            System.out.println("Found no commit with that message.");
+            message("Found no commit with that message.");
         }
     }
 
@@ -204,11 +201,7 @@ public class Repository {
         if (commitList.isEmpty()) {
             Utils.abort("Not in an initialized Gitlet directory.");
         }
-        LogHelper.printBranch();
-        LogHelper.printStagedFiles();
-        LogHelper.printRemovedFiles();
-        LogHelper.printModifications();
-        LogHelper.printUntrackedFiles();
+        StatusHelper.printStatus();
     }
 
     /** Takes the version of the file as it exists in the head commit and puts it in the
@@ -223,8 +216,8 @@ public class Repository {
         String commitId = HEAD.whichCommit();
         overwriteOne(commitId, filename);
         // unstageOne(filename);
-        // Only version 3 (checkout of a full branch) modifies the staging area:
-        // otherwise files scheduled for addition or removal remain so.
+        /** Only version 3 (checkout of a full branch) modifies the staging area:
+        * otherwise files scheduled for addition or removal remain so. */
     }
 
 
@@ -280,7 +273,6 @@ public class Repository {
         if (Branch.isBranchExist(branchName)) {
             abort("A branch with that name already exists.");
         }
-
         Branch newone = new Branch(branchName, HEAD.whichCommit());
         newone.saveBranch();
     }
@@ -301,7 +293,7 @@ public class Repository {
     */
     public static void reset(String commitID) {
         checkUntracked();
-        Commit commit = Commit.readCommitFromFile(commitID);
+//        Commit commit = Commit.readCommitFromFile(commitID);
         deleteCWDall();
         HEAD.switch2commit(commitID);
         overwriteAll(commitID);
@@ -358,17 +350,13 @@ public class Repository {
                 commit.fileMap.put(name, shaId); //map from file name (hello.c) to SHA1 String
             }
             destfile = Utils.join(COMMITED_DIR, shaId);
-//            tmpfile.renameTo(destfile);
-            try {
-                Files.copy(tmpfile.toPath(), destfile.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException excp) {
-                System.out.println(excp.getMessage());
-            }
+            Utils.secureCopyFile(tmpfile, destfile);
             tmpfile.delete();
         }
 
-        if (!isRmNotEmpty) { return; }
+        if (!isRmNotEmpty) {
+            return;
+        }
         /** Remove the entry of unstaged files from fileMap. */
         for (Map.Entry<String, String> entry : Blob.removal.entrySet()) {
             if (commit.isFilemapContains(entry.getKey())) {
@@ -462,11 +450,15 @@ public class Repository {
                     toAbort = true;
                 } else {
                     Boolean isStaged = Blob.isBlobmapContains(file);
-                    if (!isStaged) { toAbort = true; }
+                    if (!isStaged) {
+                        toAbort = true;
+                    }
                 }
             }
         }
-        if (toAbort) { abort(errMsg); }
+        if (toAbort) {
+            abort(errMsg);
+        }
     }
 
     /** Overwrite file named filename in commitSHA. */
@@ -482,7 +474,9 @@ public class Repository {
     /** Overwrite all files in CWD in commitSHA. */
     private static void overwriteAll(String commitSHA) {
         Commit commit = Commit.readCommitFromFile(commitSHA);
-        if (commit.isFilemapEmpty()) { return; }
+        if (commit.isFilemapEmpty()) {
+            return;
+        }
         for (Map.Entry<String, String> entry : commit.fileMap.entrySet()) {
             String key = entry.getKey();
             File dir = commit.getFilefromCommit(entry.getKey(), "no file named " + key);
@@ -504,16 +498,19 @@ public class Repository {
                 break;
             }
         }
-        if (toAbort) { abort(errMsg); }
+        if (toAbort) {
+            abort(errMsg);
+        }
     }
 
     /** Delete all of the files in current working directory. */
     private static void deleteCWDall() {
         List<String> fileList = Utils.plainFilenamesIn(CWD);
-//        File file;
+        File file;
         for (String filename: fileList) {
-//            file = join(CWD, filename);
-            Utils.restrictedDelete(filename);
+            file = join(CWD, filename);
+//            Utils.restrictedDelete(filename);
+            file.delete();
         }
     }
 
@@ -527,6 +524,5 @@ public class Repository {
         restrictCreateDir(INFOCOMMIT_DIR);
         restrictCreateDir(BRANCH_DIR);
     }
-
 
 }

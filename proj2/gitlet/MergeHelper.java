@@ -34,13 +34,17 @@ public class MergeHelper {
         while (true) {
             parent = commit.getfirstParent();
             ancestrorSha1Set.add(commit.getSHA1());
-            if (parent == null) { break; }
+            if (parent == null) {
+                break;
+            }
             commit = Commit.readCommitFromFile(parent);
         }
         /** Read the commit indicated by branchName in. **/
         String id = Branch.readBranchIn(branchName, true).whichCommit();
         Commit commit2 = Commit.readCommitFromFile(id);
-        if (commit2 == null) { return null; }
+        if (commit2 == null) {
+            return null;
+        }
 
         /** Travel from the commit indicated by branchName back,
          *  util we came across the latest common ancestor of these two commit. */
@@ -50,9 +54,13 @@ public class MergeHelper {
             parent2 = commit2.getfirstParent();
             /** The latest common ancestor of these two commit. */
             /** Expected time complexity of the op contains in Hashset if O(1). **/
-            if (ancestrorSha1Set.contains(commit2.getSHA1())) { break; }
+            if (ancestrorSha1Set.contains(commit2.getSHA1())) {
+                break;
+            }
             /** In case of bad commit structure. */
-            if (parent2 == null) { break; }
+            if (parent2 == null) {
+                break;
+            }
             commit2 = Commit.readCommitFromFile(parent2);
         }
 
@@ -92,14 +100,9 @@ public class MergeHelper {
         Repository.checkUnstaged();
     }
 
-
     /** Read the commit (current, split and other) in. */
     private static void readCommit(String splitSha1, String commitSha1) {
-//        if (splitSha1 == null) {
-//            split = null;
-//        } else {
-            split = Commit.readCommitFromFile(splitSha1);
-//        }
+        split = Commit.readCommitFromFile(splitSha1);
         current = Commit.readCommitFromFile(HEAD.whichCommit());
         other = Commit.readCommitFromFile(commitSha1);
     }
@@ -111,13 +114,11 @@ public class MergeHelper {
     protected static void doMerge(String splitSha1, String commitSHA1) {
         /** Read the three commit in. */
         readCommit(splitSha1, commitSHA1);
-//        if (split != null) {
-            traverseSplitMap();
-//        }
+        traverseSplitMap();
         traverseCurMap();
         traverseOtherMap();
         if (isConflict) {
-            System.out.println("Encountered a merge conflict.");
+            message("Encountered a merge conflict.");
         }
     }
 
@@ -151,7 +152,7 @@ public class MergeHelper {
                 count = 1;
             }
 
-            switch(count) {
+            switch (count) {
                 case 3: /** **/
                     Boolean modifiedInOther = !isFileSame(splitFile, otherFile);
                     Boolean modifiedInCurrent = !isFileSame(splitFile, currentFile);
@@ -194,7 +195,8 @@ public class MergeHelper {
                         /** In different way. */
                         overwriteConfilctFile(null, otherFile, fileName);
                         isConflict = true;
-                    }/**ELSE: 7.Unmodified in other but not present in HEAD: remain absent.*/
+                    }
+                    /**ELSE: 7.Unmodified in other but not present in HEAD: remain absent.*/
                     break;
                 default:
                     break;
@@ -209,15 +211,6 @@ public class MergeHelper {
         String errMsg = "File does not exist in ";
         for (Map.Entry<String, String> entry : current.fileMap.entrySet()) {
             String key = entry.getKey();
-//            Boolean isSplitContain;
-//            if (split == null) {
-//                isSplitContain = false;
-//            } else if (split.isFilemapContains(key)) {
-//                isSplitContain = true;
-//            } else {
-//                isSplitContain = false;
-//            }
-
             if (!split.isFilemapContains(key) && !other.isFilemapContains(key)) {
                 /** 4. Not in split nor other but in HEAD: remain as they are. */
                 Blob.stageForMerge(key, entry.getValue());
@@ -240,14 +233,6 @@ public class MergeHelper {
     private static void traverseOtherMap() {
         for (Map.Entry<String, String> entry : other.fileMap.entrySet()) {
             String key = entry.getKey();
-//            Boolean isSplitContain;
-//            if (split == null) {
-//                isSplitContain = false;
-//            } else if (split.isFilemapContains(key)) {
-//                isSplitContain = true;
-//            } else {
-//                isSplitContain = false;
-//            }
             if (!split.isFilemapContains(key) && !current.isFilemapContains(key)) {
                 /** 5. Not in split nor HEAD but in other: be checked out and staged. */
                 String fileId = other.getCommitedFileFromFilemap(key);
@@ -363,7 +348,7 @@ public class MergeHelper {
 //                    overwriteConfilctFile(null, otherFile, fileName);
 //                    isConflict = true;
 //                }
-//                /** ELSE: 7. Unmodified in other but not present in HEAD: remain absent. */
+//                /**ELSE:7.Unmodified in other but not present in HEAD: remain absent.*/
 //            }
 //        }
 //

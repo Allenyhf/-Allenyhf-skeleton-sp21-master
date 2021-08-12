@@ -55,8 +55,7 @@ public class Commit implements Serializable {
     public static Commit readCommitFromFile(String commitId) {
         File infile = Utils.join(Repository.INFOCOMMIT_DIR, commitId);
         if (!infile.exists()) {
-            System.out.println("No commit with that id exists.");
-            System.exit(0);
+            abort("No commit with that id exists.");
         }
         Commit commit = readObject(infile, Commit.class);
         return commit;
@@ -145,10 +144,10 @@ public class Commit implements Serializable {
      *  Print the commit information.
      */
     protected void printCommitInfo() {
-        System.out.println("===");
-        System.out.println("commit " + this.getSHA1());
-        System.out.println("Date: " + this.getDate());
-        System.out.println(this.getMessage());
-        System.out.println();
+        message("===");
+        message("commit " + this.getSHA1());
+        message("Date: " + this.getDate());
+        message(this.getMessage());
+        message("");
     }
 }

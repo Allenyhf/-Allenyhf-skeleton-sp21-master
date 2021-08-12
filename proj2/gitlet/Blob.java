@@ -42,8 +42,6 @@ public class Blob implements Serializable {
     /** Add file whose name is "name" to removal. */
     public static void remove(String name, boolean toRemoval) {
         String sha1Id = Utils.sha1(name);
-//        blobMap = getTreeMap(blobMap, false);
-//        blobMap.remove(name);
         if (toRemoval) {
             putremoval(name, sha1Id);
             saveremoval();

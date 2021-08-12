@@ -219,8 +219,6 @@ class Utils {
         }
     }
 
-
-
     /* MESSAGES AND ERROR REPORTING */
 
     /** Return a GitletException whose message is composed from MSG and ARGS as
@@ -236,8 +234,7 @@ class Utils {
         System.out.println();
     }
 
-    /**
-     * Compare the content of two file
+    /** Compare the content of two file
      * If same, return true;
      * else return false;
      */
@@ -247,8 +244,7 @@ class Utils {
         return Arrays.equals(bfile1, bfile2);
     }
 
-    /**
-     * Create directory named dirname, if it doesn't exists.
+    /** Create directory named dirname, if it doesn't exists.
      * @param dirname
      */
     public static void restrictCreateDir(File dirname) {

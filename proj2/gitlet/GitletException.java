@@ -6,7 +6,6 @@ package gitlet;
  */
 class GitletException extends RuntimeException {
 
-
     /** A GitletException with no message. */
     GitletException() {
         super();

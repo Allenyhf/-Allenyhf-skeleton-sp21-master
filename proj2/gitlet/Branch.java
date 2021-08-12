@@ -26,7 +26,6 @@ public class Branch implements Serializable {
         whichCommit = which;
     }
 
-
     /**
      * Saves this Branch for future use, and name of the Object
      * in the File System is branchName
